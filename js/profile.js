@@ -1,4 +1,3 @@
-       const db = firebase.firestore();
         
         // --- 1. HELPER FUNCTIONS (Must be defined first) ---
         
