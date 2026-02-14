@@ -1,0 +1,198 @@
+ /* --- CSS VARIABLES & RESET --- */
+        :root {
+            --primary: #EF4444;       
+            --primary-hover: #dc2626;
+            --secondary: #22C55E;     
+            --dark: #111827;          
+            --gray: #6B7280;          
+            --light: #F3F4F6;         
+            --white: #ffffff;
+            --shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.1);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; scroll-behavior: smooth; }
+
+        body {
+            font-family: 'Poppins', sans-serif;
+            color: var(--dark);
+            background-color: var(--white);
+            line-height: 1.6;
+            overflow-x: hidden;
+        }
+
+        a { text-decoration: none; color: inherit; }
+        ul { list-style: none; }
+
+        /* --- NAVBAR --- */
+        .navbar {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 1rem 5%; position: fixed; width: 100%; top: 0; z-index: 1000;
+            background: rgba(255, 255, 255, 0.9); backdrop-filter: blur(10px);
+            border-bottom: 1px solid rgba(0,0,0,0.05); transition: all 0.3s ease;
+        }
+
+        .logo-container { display: flex; align-items: center; gap: 10px; }
+        .nav-links { display: flex; gap: 2rem; }
+        .nav-links a { font-weight: 500; color: var(--gray); transition: color 0.3s; position: relative; }
+        .nav-links a:hover, .nav-links a.active { color: var(--primary); }
+        .nav-links a::after {
+            content: ''; position: absolute; width: 0; height: 2px; bottom: -5px; left: 0;
+            background-color: var(--primary); transition: width 0.3s;
+        }
+        .nav-links a:hover::after { width: 100%; }
+
+        /* Login Button (Default) */
+        .btn-login {
+            background-color: var(--primary); color: white;
+            padding: 0.6rem 1.5rem; border: none; border-radius: 50px;
+            font-weight: 600; cursor: pointer; transition: all 0.3s ease;
+            box-shadow: 0 4px 14px 0 rgba(239, 68, 68, 0.39);
+        }
+        .btn-login:hover { background-color: var(--primary-hover); transform: translateY(-2px); }
+
+        /* --- PROFILE BUTTON (Hidden by default) --- */
+        .btn-profile {
+            background-color: white; color: var(--dark);
+            padding: 0.5rem 1rem; border: 2px solid #E5E7EB; border-radius: 50px;
+            font-weight: 600; cursor: pointer; transition: all 0.3s ease;
+            display: none; /* Hidden until logged in */
+            align-items: center; gap: 10px;
+        }
+        .btn-profile:hover { border-color: var(--secondary); background: #F0FDF4; }
+        .btn-profile img { width: 30px; height: 30px; border-radius: 50%; object-fit: cover; }
+
+        .menu-toggle { display: none; font-size: 1.5rem; cursor: pointer; }
+
+        /* --- HERO SECTION --- */
+        .hero {
+            display: flex; align-items: center; justify-content: space-between;
+            min-height: 90vh; padding: 0 5%; padding-top: 80px;
+            background: linear-gradient(135deg, #FFF 0%, #FFF5F5 100%); position: relative;
+        }
+        .hero-content { flex: 1; max-width: 600px; animation: fadeLeft 1s ease-out; }
+        .hero-content h1 { font-size: 3.5rem; line-height: 1.2; margin-bottom: 1.5rem; color: var(--dark); }
+        .hero-content p { font-size: 1.1rem; color: var(--gray); margin-bottom: 2rem; }
+        .cta-buttons { display: flex; gap: 1rem; }
+        
+        .btn-primary {
+            background-color: var(--primary); color: white; padding: 1rem 2rem;
+            border: none; border-radius: 8px; font-weight: 600; cursor: pointer; transition: all 0.3s;
+        }
+        .btn-primary:hover { background-color: var(--primary-hover); transform: translateY(-3px); }
+        
+        .btn-outline {
+            background-color: transparent; color: var(--dark); padding: 1rem 2rem;
+            border: 2px solid var(--dark); border-radius: 8px; font-weight: 600; cursor: pointer; transition: all 0.3s;
+        }
+        .btn-outline:hover { background-color: var(--dark); color: white; transform: translateY(-3px); }
+
+        .hero-image { flex: 1; display: flex; justify-content: center; position: relative; animation: fadeRight 1s ease-out; }
+        .floating-icon {
+            font-size: 180px; color: var(--primary);
+            filter: drop-shadow(0 20px 30px rgba(239, 68, 68, 0.2));
+            animation: float 6s ease-in-out infinite;
+        }
+
+        /* --- SECTIONS --- */
+        .stats-bar { background: var(--dark); color: white; display: flex; justify-content: space-around; padding: 2rem 5%; flex-wrap: wrap; gap: 2rem; }
+        .stat-item { text-align: center; }
+        .stat-number { font-size: 2rem; font-weight: 700; color: var(--secondary); display: block; }
+        
+        .how-it-works { padding: 5rem 5%; background-color: #F0FDF4; }
+        .steps-container { display: flex; flex-wrap: wrap; justify-content: center; gap: 2rem; margin-top: 3rem; }
+        .step { flex: 1; min-width: 250px; text-align: center; }
+        .step-number { background: var(--secondary); color: white; width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; margin: 0 auto 1rem; }
+
+        .features { padding: 5rem 5%; background-color: var(--white); text-align: center; }
+        .section-header { margin-bottom: 3rem; max-width: 700px; margin: 0 auto 3rem auto; }
+        .section-header h2 { font-size: 2.5rem; margin-bottom: 1rem; }
+        .section-header .highlight { color: var(--primary); }
+        .feature-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 2rem; }
+        
+        .card { background: white; padding: 2rem; border-radius: 15px; box-shadow: var(--shadow); transition: transform 0.3s ease; text-align: left; border-top: 5px solid transparent; }
+        .card:hover { transform: translateY(-10px); }
+        .card.patient { border-color: var(--secondary); } .card.doctor { border-color: var(--primary); } .card.pharmacy { border-color: var(--dark); }
+        .card i { font-size: 2.5rem; margin-bottom: 1.5rem; display: inline-block; padding: 15px; border-radius: 12px; }
+        .card.patient i { color: var(--secondary); background: #DCFCE7; } .card.doctor i { color: var(--primary); background: #FEE2E2; } .card.pharmacy i { color: var(--dark); background: #E5E7EB; }
+
+        footer { background: var(--dark); color: white; padding: 3rem 5%; text-align: center; }
+
+        /* --- PROFILE MODAL STYLES --- */
+        .modal-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0, 0, 0, 0.5); backdrop-filter: blur(5px);
+            z-index: 2000; display: none; justify-content: center; align-items: center;
+            opacity: 0; transition: opacity 0.3s;
+        }
+        .modal-overlay.active { display: flex; opacity: 1; }
+
+        .profile-card {
+            background: white; width: 100%; max-width: 500px;
+            border-radius: 24px; padding: 2rem; position: relative;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+            transform: scale(0.9); transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+        .modal-overlay.active .profile-card { transform: scale(1); }
+
+        .profile-header { text-align: center; margin-bottom: 1.5rem; position: relative; }
+        
+        /* Avatar Upload */
+        .avatar-wrapper {
+            width: 100px; height: 100px; margin: 0 auto 1rem; position: relative; cursor: pointer;
+        }
+        .avatar-img {
+            width: 100%; height: 100%; border-radius: 50%; object-fit: cover;
+            border: 3px solid var(--secondary); padding: 2px;
+        }
+        .avatar-overlay {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.4); border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            color: white; opacity: 0; transition: 0.2s;
+        }
+        .avatar-wrapper:hover .avatar-overlay { opacity: 1; }
+
+        .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem; }
+        .full-width { grid-column: span 2; }
+        
+        .form-group label { display: block; font-size: 0.85rem; color: var(--gray); margin-bottom: 5px; }
+        .form-group input, .form-group select {
+            width: 100%; padding: 10px; border: 1px solid #E5E7EB;
+            border-radius: 8px; outline: none; transition: 0.2s;
+        }
+        .form-group input:focus { border-color: var(--secondary); }
+
+        .btn-save { background: var(--secondary); color: white; width: 100%; padding: 12px; border: none; border-radius: 10px; font-weight: 600; cursor: pointer; }
+        .btn-save:hover { background: var(--secondary-hover); }
+
+        .btn-logout { 
+            position: absolute; top: 20px; right: 20px; 
+            color: var(--primary); background: #FEF2F2; 
+            border: none; padding: 5px 10px; border-radius: 6px; cursor: pointer; 
+        }
+        .btn-logout:hover { background: #FEE2E2; }
+
+        /* --- ANIMATIONS --- */
+        @keyframes float { 0% { transform: translateY(0px); } 50% { transform: translateY(-20px); } 100% { transform: translateY(0px); } }
+        @keyframes fadeLeft { from { opacity: 0; transform: translateX(-50px); } to { opacity: 1; transform: translateX(0); } }
+        @keyframes fadeRight { from { opacity: 0; transform: translateX(50px); } to { opacity: 1; transform: translateX(0); } }
+        .reveal { opacity: 0; transform: translateY(30px); transition: all 0.8s ease-out; }
+        .reveal.active { opacity: 1; transform: translateY(0); }
+
+        /* --- MOBILE --- */
+        @media (max-width: 768px) {
+            .navbar { padding: 1rem; }
+            .menu-toggle { display: block; color: var(--dark); }
+            .nav-links {
+                position: absolute; top: 70px; left: 0; width: 100%; background: white;
+                flex-direction: column; align-items: center; padding: 2rem;
+                box-shadow: 0 10px 10px rgba(0,0,0,0.1); clip-path: circle(0px at 90% -10%);
+                transition: all 0.5s ease-out;
+            }
+            .nav-links.open { clip-path: circle(1000px at 90% -10%); }
+            .hero { flex-direction: column-reverse; text-align: center; padding-top: 100px; }
+            .hero-content h1 { font-size: 2.5rem; }
+            .cta-buttons { justify-content: center; flex-direction: column; }
+            .desktop-only { display: none !important; }
+            .mobile-only { display: block !important; margin-top: 10px; }
+        }
