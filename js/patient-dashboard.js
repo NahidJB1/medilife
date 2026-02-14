@@ -1,5 +1,3 @@
- const db = firebase.firestore();
-    const auth = firebase.auth();
     const modal = document.getElementById('dashboardModal');
     const modalContent = document.getElementById('modalContent');
 
@@ -95,19 +93,30 @@
         }
     }
 
-    function submitReport() {
-        const file = document.getElementById('reportFile').files[0];
-        if(!file) { showToast("Select a file first."); return; }
-        const reader = new FileReader();
-        reader.onload = function(e) {
-            db.collection('reports').add({
-                patientId: currentUserData.uid, patientName: currentUserData.name,
-                reportType: document.getElementById('reportType').value, fileData: e.target.result,
-                timestamp: firebase.firestore.FieldValue.serverTimestamp()
-            }).then(() => { showToast("Uploaded!"); closeModal(); });
-        };
-        reader.readAsDataURL(file);
+// --- REPLACE submitReport function ---
+async function submitReport() {
+    const fileInput = document.getElementById('reportFile');
+    const file = fileInput.files[0];
+    
+    if(!file) { showToast("Select a file first."); return; }
+
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('patient_id', localStorage.getItem('userUid'));
+    formData.append('report_type', document.getElementById('reportType').value);
+    formData.append('uploaded_by', 'patient');
+
+    // You need to create api/upload_report.php to handle this
+    const response = await fetch('api/upload_report.php', { method: 'POST', body: formData });
+    const result = await response.json();
+
+    if(result.status === 'success') {
+        showToast("Uploaded!");
+        closeModal();
+    } else {
+        showToast("Upload failed");
     }
+}
 
     function openFindDoctorModal() {
         modalContent.innerHTML = `<h2>Doctors</h2><div id="docList" style="margin-top:15px">Loading list...</div>`;
