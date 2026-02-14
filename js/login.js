@@ -1,104 +1,57 @@
-        // --- 1. UI SWITCHING ---
-        function switchMode(mode) {
-            const container = document.getElementById('toggleContainer');
-            const loginBtn = document.getElementById('loginBtn');
-            const regBtn = document.getElementById('registerBtn');
-            const loginForm = document.getElementById('loginForm');
-            const regForm = document.getElementById('registerForm');
-            const title = document.getElementById('headerTitle');
-            const sub = document.getElementById('headerSubtitle');
+// --- 1. UI SWITCHING ---
+function switchMode(mode) {
+    const container = document.getElementById('toggleContainer');
+    const loginBtn = document.getElementById('loginBtn');
+    const regBtn = document.getElementById('registerBtn');
+    const loginForm = document.getElementById('loginForm');
+    const regForm = document.getElementById('registerForm');
+    const title = document.getElementById('headerTitle');
+    const sub = document.getElementById('headerSubtitle');
 
-            if (mode === 'register') {
-                container.classList.add('register-mode');
-                loginBtn.classList.remove('active');
-                regBtn.classList.add('active');
-                loginForm.classList.add('hidden');
-                regForm.classList.remove('hidden');
-                title.innerText = "Join MEDeLIFE";
-                sub.innerText = "Create a new account.";
-            } else {
-                container.classList.remove('register-mode');
-                regBtn.classList.remove('active');
-                loginBtn.classList.add('active');
-                regForm.classList.add('hidden');
-                loginForm.classList.remove('hidden');
-                title.innerText = "Welcome Back";
-                sub.innerText = "Enter your details to access your records.";
-            }
-        }
+    if (mode === 'register') {
+        container.classList.add('register-mode');
+        loginBtn.classList.remove('active');
+        regBtn.classList.add('active');
+        loginForm.classList.add('hidden');
+        regForm.classList.remove('hidden');
+        title.innerText = "Join MEDeLIFE";
+        sub.innerText = "Create a new account.";
+    } else {
+        container.classList.remove('register-mode');
+        regBtn.classList.remove('active');
+        loginBtn.classList.add('active');
+        regForm.classList.add('hidden');
+        loginForm.classList.remove('hidden');
+        title.innerText = "Welcome Back";
+        sub.innerText = "Enter your details to access your records.";
+    }
+}
 
-        function toggleRoleFields() {
-            const role = document.getElementById('regRole').value;
-            const docField = document.getElementById('doctorField');
-            const pharmField = document.getElementById('pharmacyField');
-            const docInput = document.getElementById('regDocID');
-            const pharmInput = document.getElementById('regLicense');
+function toggleRoleFields() {
+    const role = document.getElementById('regRole').value;
+    const docField = document.getElementById('doctorField');
+    const pharmField = document.getElementById('pharmacyField');
 
-            docField.classList.add('hidden'); pharmField.classList.add('hidden');
-            docInput.required = false; pharmInput.required = false;
+    // Hide both initially
+    docField.classList.add('hidden');
+    pharmField.classList.add('hidden');
 
-            if (role === 'doctor') {
-                docField.classList.remove('hidden'); docInput.required = true; docField.style.animation = "fadeIn 0.5s";
-            } else if (role === 'pharmacy') {
-                pharmField.classList.remove('hidden'); pharmInput.required = true; pharmField.style.animation = "fadeIn 0.5s";
-            }
-        }
+    if (role === 'doctor') {
+        docField.classList.remove('hidden');
+        docField.style.animation = "fadeIn 0.5s";
+    } else if (role === 'pharmacy') {
+        pharmField.classList.remove('hidden');
+        pharmField.style.animation = "fadeIn 0.5s";
+    }
+}
 
-        
-        function showSuccessAnimation() {
-            // Hide the form
-            document.getElementById('registerForm').classList.add('hidden');
-            document.getElementById('headerTitle').style.opacity = '0';
-            document.getElementById('headerSubtitle').style.opacity = '0';
-            
-            // Show the nice popup
-            const overlay = document.getElementById('successOverlay');
-            overlay.classList.add('active');
+// --- 2. AUTHENTICATION (PHP) ---
 
-            // Wait 2.5 seconds, then switch to Login view
-            setTimeout(() => {
-                overlay.classList.remove('active');
-                document.getElementById('headerTitle').style.opacity = '1';
-                document.getElementById('headerSubtitle').style.opacity = '1';
-                
-                // Reset Form
-                document.getElementById('registerForm').reset();
-                document.getElementById('btnRegister').disabled = false;
-                document.getElementById('btnRegister').innerText = "Create Account";
-                
-                // Switch View
-                switchMode('login');
-            }, 2500);
-        }
-
-        function validateInputs() {
-            const nameRegex = /^[a-zA-Z\s]+$/;
-            const idRegex = /^[a-zA-Z0-9]+$/;
-            const phoneRegex = /^[0-9]+$/;
-
-            const nameInput = document.getElementById('regName');
-            const idInput = document.getElementById('regNationalID');
-            const phoneInput = document.getElementById('regPhone');
-            
-            let isValid = true;
-
-            if (!nameRegex.test(nameInput.value)) { setError(nameInput); isValid = false; } else { clearError(nameInput); }
-            if (!idRegex.test(idInput.value)) { setError(idInput); isValid = false; } else { clearError(idInput); }
-            if (!phoneRegex.test(phoneInput.value)) { setError(phoneInput); isValid = false; } else { clearError(phoneInput); }
-
-            return isValid;
-        }
-
-        function setError(inputElement) {
-            inputElement.classList.add('error');
-            setTimeout(() => { inputElement.classList.remove('error'); inputElement.style.borderColor = "#EF4444"; }, 300);
-        }
-        function clearError(inputElement) { inputElement.style.borderColor = "transparent"; document.getElementById('emailErrorMsg').style.display = 'none'; }
-        
-        // --- REPLACE handleRegister function ---
 async function handleRegister(event) {
     event.preventDefault();
     const btn = document.getElementById('btnRegister');
+    const originalText = btn.innerText;
+    btn.disabled = true;
     btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Creating...';
 
     const formData = new FormData();
@@ -107,6 +60,9 @@ async function handleRegister(event) {
     formData.append('email', document.getElementById('regEmail').value);
     formData.append('password', document.getElementById('regPassword').value);
     formData.append('role', document.getElementById('regRole').value);
+    
+    // Optional fields
+    formData.append('phone', document.getElementById('regPhone').value);
 
     try {
         const response = await fetch('api/auth.php', { method: 'POST', body: formData });
@@ -115,20 +71,24 @@ async function handleRegister(event) {
         if (result.status === 'success') {
             showSuccessAnimation();
         } else {
-            alert(result.message);
+            alert(result.message || "Registration failed");
+            btn.disabled = false;
+            btn.innerText = originalText;
         }
     } catch (error) {
         console.error('Error:', error);
-    } finally {
-        btn.innerHTML = 'Create Account';
+        alert("Server error. Check console.");
+        btn.disabled = false;
+        btn.innerText = originalText;
     }
 }
 
-// --- REPLACE handleLogin function ---
 async function handleLogin(event) {
     event.preventDefault();
     const btn = document.getElementById('btnSignIn');
-    btn.innerHTML = 'Signing In...';
+    const originalText = btn.innerText;
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Signing In...';
 
     const formData = new FormData();
     formData.append('action', 'login');
@@ -141,49 +101,44 @@ async function handleLogin(event) {
 
         if (result.status === 'success') {
             const u = result.user;
+            
+            // Save Session Data
             localStorage.setItem('isLoggedIn', 'true');
-            localStorage.setItem('userUid', u.uid); // Storing Email as UID
+            localStorage.setItem('userUid', u.email); // Use Email as UID for consistency
             localStorage.setItem('userName', u.name);
             localStorage.setItem('userRole', u.role);
-            localStorage.setItem('userEmail', u.uid);
+            localStorage.setItem('userEmail', u.email);
 
             redirectToDashboard(u.role);
         } else {
-            alert(result.message);
+            alert(result.message || "Invalid credentials");
+            btn.disabled = false;
+            btn.innerText = originalText;
         }
     } catch (error) {
         console.error(error);
-    } finally {
-        btn.innerHTML = 'Sign In';
+        alert("Login error. Check console.");
+        btn.disabled = false;
+        btn.innerText = originalText;
     }
 }
 
-        function checkLocalBackupAndRedirect(email) {
-            const savedData = localStorage.getItem('db_user_' + email);
-            let role = 'patient'; // Default
+function showSuccessAnimation() {
+    document.getElementById('registerForm').classList.add('hidden');
+    const overlay = document.getElementById('successOverlay');
+    overlay.classList.add('active');
 
-            if (savedData) {
-                const data = JSON.parse(savedData);
-                localStorage.setItem('isLoggedIn', 'true');
-                localStorage.setItem('userName', data.name);
-                localStorage.setItem('userRole', data.role);
-                role = data.role;
-            } else {
-                localStorage.setItem('isLoggedIn', 'true');
-                if(!localStorage.getItem('userRole')) localStorage.setItem('userRole', 'patient');
-            }
-            
-            // --- NEW: REDIRECT BASED ON ROLE ---
-            redirectToDashboard(role);
-        }
+    setTimeout(() => {
+        overlay.classList.remove('active');
+        document.getElementById('registerForm').reset();
+        document.getElementById('btnRegister').disabled = false;
+        document.getElementById('btnRegister').innerText = "Create Account";
+        switchMode('login');
+    }, 2000);
+}
 
-        // --- NEW HELPER FUNCTION ---
-        function redirectToDashboard(role) {
-            if (role === 'doctor') {
-                window.location.href = "doctor-dashboard.html";
-            } else if (role === 'pharmacy') {
-                window.location.href = "pharmacy-dashboard.html";
-            } else {
-                window.location.href = "patient-dashboard.html";
-            }
-        }
+function redirectToDashboard(role) {
+    if (role === 'doctor') window.location.href = "doctor-dashboard.html";
+    else if (role === 'pharmacy') window.location.href = "pharmacy-dashboard.html";
+    else window.location.href = "patient-dashboard.html";
+}
