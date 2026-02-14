@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MEDeLIFE | Your Health History, Everywhere.</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="css/index.css">
+</head>
+<body>
+
+<nav class="navbar">
+    <a href="#" class="logo-container">
+        <svg width="40" height="40" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+            <rect x="35" y="10" width="30" height="80" rx="5" fill="#EF4444" />
+            <rect x="10" y="35" width="80" height="30" rx="5" fill="#EF4444" />
+        </svg>
+        <div style="font-family: 'Poppins', sans-serif; font-size: 22px; font-weight: 700; line-height: 1;">
+            <span style="color: #EF4444;">MED</span><span style="color: #000;">e</span><span style="color: #22C55E;">LIFE</span>
+        </div>
+    </a>
+    
+    <div class="menu-toggle" id="mobile-menu">
+        <i class="fas fa-bars"></i>
+    </div>
+
+    <ul class="nav-links">
+        <li><a href="#" class="active">Home</a></li>
+        <li><a href="#how-it-works">How it Works</a></li>
+        <li><a href="#features">Features</a></li>
+        <li><a href="community.html">Community</a></li> 
+        <li class="mobile-only login-nav-item"><a href="login.html">Login</a></li>
+    </ul>
+
+    <button id="navLoginBtn" class="btn-login desktop-only" onclick="window.location.href='login.html'">Login / Register</button>
+
+    <button id="navProfileBtn" class="btn-profile desktop-only" onclick="openProfile()">
+        <img id="navAvatar" src="https://via.placeholder.com/150" alt="Avatar">
+        <span>My Profile</span>
+    </button>
+</nav>
+
+<header class="hero">
+    <div class="hero-content">
+        <h1>Your Health History,<br> <span style="color: var(--primary);">Everywhere You Go.</span></h1>
+        <p>Securely store prescriptions, lab reports, and doctor's notes. A unified medical profile accessible by you, your doctor, and your pharmacist.</p>
+        <div class="cta-buttons">
+            <button class="btn-primary" onclick="window.location.href='login.html'">Get Started</button>
+            <button class="btn-outline" onclick="window.location.href='#features'">Learn More</button>
+            <button class="btn-primary" onclick="window.location.href='community.html'">Browse Q&A Topics</button>
+        </div>
+    </div>
+    <div class="hero-image">
+        <div class="floating-icon"><i class="fas fa-heartbeat"></i></div>
+    </div>
+</header>
+
+<div class="stats-bar reveal">
+    <div class="stat-item"><span class="stat-number">10k+</span><span class="stat-label">Active Patients</span></div>
+    <div class="stat-item"><span class="stat-number">500+</span><span class="stat-label">Verified Doctors</span></div>
+    <div class="stat-item"><span class="stat-number">24/7</span><span class="stat-label">Secure Access</span></div>
+</div>
+
+<section id="how-it-works" class="how-it-works reveal">
+    <div class="section-header" style="text-align: center;">
+        <h2>How <span class="highlight">MEDeLIFE</span> Works</h2>
+        <p>Simplify your healthcare journey in three easy steps.</p>
+    </div>
+    <div class="steps-container">
+        <div class="step"><div class="step-number">1</div><h3>Create Profile</h3><p>Register quickly and create your unique digital health ID.</p></div>
+        <div class="step"><div class="step-number">2</div><h3>Connect</h3><p>Visit any partner hospital. Doctors upload your records instantly.</p></div>
+        <div class="step"><div class="step-number">3</div><h3>Access</h3><p>View your history, prescriptions, and reports anytime via the dashboard.</p></div>
+    </div>
+</section>
+
+<section id="features" class="features">
+    <div class="section-header reveal">
+        <h2>Designed for <span class="highlight">Everyone</span></h2>
+        <p>A complete ecosystem connecting all healthcare stakeholders.</p>
+    </div>
+    <div class="feature-grid">
+        <div class="card patient reveal"><i class="fas fa-user-injured"></i><h3>For Patients</h3><p>Your central health hub. No more lost prescriptions.</p></div>
+        <div class="card doctor reveal"><i class="fas fa-user-md"></i><h3>For Doctors</h3><p>Make better decisions with instant access to patient history.</p></div>
+        <div class="card pharmacy reveal"><i class="fas fa-prescription-bottle-alt"></i><h3>For Pharmacies</h3><p>Prevent errors and fraud. Verify digital prescriptions instantly.</p></div>
+    </div>
+</section>
+
+<div class="modal-overlay" id="profileModal">
+    <div class="profile-card">
+        <button class="btn-logout" onclick="handleLogout()"><i class="fas fa-sign-out-alt"></i> Logout</button>
+        
+        <div class="profile-header">
+            <input type="file" id="fileInput" style="display: none;" accept="image/*" onchange="previewImage(event)">
+            
+            <div class="avatar-wrapper" onclick="document.getElementById('fileInput').click()">
+                <img id="modalAvatar" src="https://via.placeholder.com/150" class="avatar-img">
+                <div class="avatar-overlay"><i class="fas fa-camera"></i></div>
+            </div>
+            
+            <h2 id="profileName">Loading User...</h2>
+            <p id="profileRole" style="color: var(--secondary); font-weight: 500;">Patient Account</p>
+        </div>
+
+        <form onsubmit="saveProfile(event)">
+            <div class="form-grid">
+                <div class="form-group">
+                    <label>Phone</label>
+                    <input type="text" id="profilePhone" placeholder="012-3456789">
+                </div>
+                <div class="form-group">
+                    <label>Blood Type</label>
+                    <select id="profileBlood">
+                        <option value="">Select...</option>
+                        <option>A+</option><option>A-</option><option>B+</option><option>B-</option>
+                        <option>O+</option><option>O-</option><option>AB+</option><option>AB-</option>
+                    </select>
+                </div>
+                <div class="form-group full-width">
+                    <label>Home Address</label>
+                    <input type="text" id="profileAddress" placeholder="Street, City, Postcode">
+                </div>
+                <div class="form-group full-width">
+                    <label>Emergency Contact</label>
+                    <input type="text" id="profileEmergency" placeholder="Name & Phone Number">
+                </div>
+            </div>
+            <button type="submit" class="btn-save">Save Changes</button>
+        </form>
+    </div>
+</div>
+
+<footer>
+    <p>&copy; 2026 MEDeLIFE. All Rights Reserved.</p>
+</footer>
+
+<script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore-compat.js"></script>
+<script src="js/firebase-init.js"></script>
+<script src="js/index.js"></script>
+</body>
+</html>
