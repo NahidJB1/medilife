@@ -162,22 +162,32 @@ fetch(`${API_BASE}users.php?action=get&uid=${uid}`)
         if (!data) return;
 
         // Load Profile Picture
-        if (data.profile_pic) { // Note: PHP usually uses snake_case keys like profile_pic
+        if (data.profile_pic) { 
             document.getElementById('mainProfileImg').src = data.profile_pic;
             document.getElementById('sideAvatar').src = data.profile_pic;
         }
 
-        // Load Generic Inputs
+        // [UPDATED] Load Generic Inputs with intelligent Key Mapping
         document.querySelectorAll('input, select').forEach(input => {
             if (input.id.startsWith('inp_')) {
-                const key = input.id.replace('inp_', ''); 
-                // Check if key exists in data (handling camelCase vs snake_case if needed)
-                if (data[key]) input.value = data[key];
+                const jsKey = input.id.replace('inp_', ''); 
+                
+                // 1. Try exact match (e.g. "name")
+                let val = data[jsKey];
+                
+                // 2. If empty, try converting camelCase to snake_case (e.g. "bloodGroup" -> "blood_group")
+                if (!val) {
+                    const snakeKey = jsKey.replace(/[A-Z]/g, letter => `_${letter.toLowerCase()}`);
+                    val = data[snakeKey];
+                }
+
+                if (val) input.value = val;
             }
         });
 
         // Load Schedule Tags (Doctor)
         if (data.time && document.getElementById('scheduleContainer')) {
+            // ... existing time loading logic ...
             const times = data.time.split(' | ');
             const schedCont = document.getElementById('scheduleContainer');
             if (times.length > 0 && times[0] !== "") {
