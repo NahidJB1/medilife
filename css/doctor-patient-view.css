@@ -1,0 +1,120 @@
+        /* --- REUSED DASHBOARD STYLES --- */
+        :root { --primary: #EF4444; --secondary: #22C55E; --dark: #111827; --gray: #6B7280; --light: #F3F4F6; --white: #ffffff; --sidebar-width: 260px; }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Poppins', sans-serif; background-color: #F9FAFB; color: var(--dark); display: flex; }
+        
+        /* Sidebar & Layout */
+        .sidebar { width: var(--sidebar-width); height: 100vh; background: var(--white); position: fixed; top: 0; left: 0; border-right: 1px solid #E5E7EB; display: flex; flex-direction: column; padding: 2rem 1.5rem; transition: all 0.3s ease; z-index: 100; }
+        .brand { font-size: 24px; font-weight: 700; margin-bottom: 3rem; display: flex; align-items: center; gap: 10px; cursor: pointer; }
+        .nav-items { flex: 1; display: flex; flex-direction: column; gap: 0.5rem; }
+        .nav-item { padding: 12px 15px; border-radius: 12px; color: var(--gray); font-weight: 500; cursor: pointer; transition: all 0.3s; display: flex; align-items: center; gap: 12px; }
+        .nav-item:hover { background: #FEF2F2; color: var(--primary); }
+        .nav-item.active { background: var(--primary); color: white; box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3); }
+        .user-mini-profile { border-top: 1px solid #E5E7EB; padding-top: 1.5rem; display: flex; align-items: center; gap: 12px; }
+        .mini-avatar { width: 40px; height: 40px; border-radius: 50%; object-fit: cover; border: 2px solid var(--secondary); }
+        
+        /* Main Content */
+        .main-content { margin-left: var(--sidebar-width); width: calc(100% - var(--sidebar-width)); padding: 2rem 3rem; min-height: 100vh; }
+        header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; }
+        .page-title { font-size: 1.5rem; font-weight: 600; display: flex; align-items: center; gap: 10px; }
+        .btn-back { padding: 8px 16px; border: 1px solid #E5E7EB; background: white; border-radius: 8px; font-weight: 600; cursor: pointer; transition: 0.2s; color: var(--gray); text-decoration: none; font-size: 0.9rem; }
+        .btn-back:hover { border-color: var(--primary); color: var(--primary); }
+
+        /* --- PROFILE SPECIFIC STYLES --- */
+        .profile-container { background: white; border-radius: 16px; padding: 2rem; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); border: 1px solid #E5E7EB; min-height: 500px; }
+        
+        /* Tabs within Profile */
+        .modal-tabs { display: flex; border-bottom: 2px solid #E5E7EB; margin-bottom: 25px; }
+        .m-tab-item { padding: 12px 25px; cursor: pointer; font-weight: 600; color: var(--gray); border-bottom: 3px solid transparent; transition: 0.3s; font-size: 1rem; }
+        .m-tab-item.active { color: var(--primary); border-bottom-color: var(--primary); background: #FEF2F2; border-radius: 8px 8px 0 0; }
+        
+        /* Lists & Buttons */
+        .list-item { display: flex; justify-content: space-between; align-items: center; padding: 15px; border: 1px solid #E5E7EB; border-radius: 10px; margin-bottom: 10px; transition: 0.2s; background: #F9FAFB; }
+        .list-item:hover { border-color: var(--primary); background: #FEF2F2; }
+        .list-btn { padding: 8px 16px; border-radius: 6px; border: none; font-weight: 600; cursor: pointer; font-size: 0.85rem; }
+        .btn-view { background: #4F46E5; color: white; }
+        .btn-book { background: var(--primary); color: white; }
+        
+        /* Inputs & Prescriptions */
+        .rx-paper { background: white; border: 1px solid #E5E7EB; padding: 30px; border-radius: 8px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); max-width: 900px; margin: 0 auto; }
+        .rx-header { text-align: center; border-bottom: 2px solid #000; padding-bottom: 15px; margin-bottom: 15px; }
+        .rx-meta { display: flex; justify-content: space-between; font-size: 0.9rem; border-bottom: 1px solid #eee; padding-bottom: 10px; margin-bottom: 15px; color: #4B5563; }
+        .rx-input { width: 100%; border: 1px dashed #E5E7EB; padding: 15px; min-height: 200px; outline: none; font-family: 'Poppins', sans-serif; resize: none; font-size: 1rem; }
+        .rx-input:focus { border-color: var(--primary); background: #F9FAFB; }
+        
+        /* Access States */
+        .access-denied-box { text-align: center; padding: 60px 20px; background: #F3F4F6; border-radius: 12px; border: 2px dashed #9CA3AF; margin-top: 20px; }
+        
+        /* Document Viewer Modal (Still needed as a popup) */
+        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.5); backdrop-filter: blur(5px); z-index: 2000; display: none; justify-content: center; align-items: center; }
+        .modal-overlay.active { display: flex; animation: fadeIn 0.3s; }
+        .dashboard-modal { background: white; width: 90%; max-width: 900px; height: 90%; border-radius: 16px; padding: 0; position: relative; overflow: hidden; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1); display:flex; flex-direction:column; }
+        .close-modal { position: absolute; top: 15px; right: 20px; font-size: 1.5rem; cursor: pointer; color: var(--gray); z-index: 10; }
+
+        /* Toast */
+        #toast-box { position: fixed; bottom: 30px; right: 30px; background: var(--dark); color: white; padding: 15px 25px; border-radius: 12px; z-index: 9999; opacity: 0; transform: translateY(20px); transition: all 0.3s ease; pointer-events: none; }
+        #toast-box.show { opacity: 1; transform: translateY(0); }
+
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        @media (max-width: 768px) { .sidebar { transform: translateX(-100%); } .main-content { margin-left: 0; width: 100%; padding: 1.5rem; } }
+
+        /* PRINT STYLES */
+        @media print {
+            @page { size: A4; margin: 0; }
+            body > * { display: none !important; }
+            #documentViewerModal { display: block !important; position: absolute; top:0; left:0; width:100%; height:auto; background:white; z-index:9999; }
+            #documentViewerModal .dashboard-modal { box-shadow: none; border: none; width: 100%; max-width: 100%; height: auto; position: static; background: transparent; }
+            #docViewerContent { display: block !important; overflow: visible !important; height: auto !important; padding: 20px; }
+            .rx-paper { border: 2px solid #000 !important; width: 100%; max-width: 100%; margin: 0; box-shadow: none; }
+            .rx-body-bg { background-color: #FAFAFA !important; -webkit-print-color-adjust: exact; }
+            .close-modal, .no-print { display: none !important; }
+        }
+
+        /* --- AI SUMMARY FEATURE --- */
+.ai-fab { 
+    position: fixed; 
+    bottom: 30px; 
+    right: 30px; 
+    width: 60px; 
+    height: 60px; 
+    background: linear-gradient(135deg, #6366f1, #a855f7); 
+    color: white; 
+    border-radius: 50%; 
+    border: none; 
+    box-shadow: 0 4px 15px rgba(99, 102, 241, 0.4); 
+    cursor: pointer; 
+    display: flex; 
+    align-items: center; 
+    justify-content: center; 
+    font-size: 1.5rem; 
+    transition: all 0.3s; 
+    z-index: 999; 
+}
+.ai-fab:hover { transform: scale(1.1) rotate(10deg); box-shadow: 0 6px 20px rgba(99, 102, 241, 0.6); }
+
+/* Summary Modal */
+.ai-modal-overlay { 
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
+    background: rgba(0,0,0,0.6); backdrop-filter: blur(4px); 
+    z-index: 10000; display: none; align-items: center; justify-content: center; 
+}
+.ai-modal-overlay.active { display: flex; animation: fadeIn 0.3s; }
+.ai-card { 
+    background: white; width: 90%; max-width: 500px; 
+    border-radius: 20px; padding: 30px; position: relative; 
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1); 
+}
+.ai-card h3 { 
+    background: -webkit-linear-gradient(#6366f1, #a855f7); 
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent; 
+    font-size: 1.5rem; margin-bottom: 15px; 
+}
+.ai-content { 
+    background: #F9FAFB; padding: 20px; border-radius: 12px; 
+    border: 1px solid #E5E7EB; min-height: 100px; 
+    font-size: 0.95rem; line-height: 1.6; color: #374151; 
+}
+.ai-loading { text-align: center; color: #6B7280; font-style: italic; }
+
+/* Move existing Toast up so it doesn't hit the FAB */
+#toast-box { bottom: 100px !important; }
