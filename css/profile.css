@@ -1,0 +1,75 @@
+        :root { --primary: #EF4444; --secondary: #22C55E; --dark: #111827; --gray: #6B7280; --light: #F3F4F6; --white: #ffffff; --sidebar-width: 260px; }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Poppins', sans-serif; background-color: #F9FAFB; color: var(--dark); display: flex; }
+        
+        /* Reused Sidebar Styles */
+        .sidebar { width: var(--sidebar-width); height: 100vh; background: var(--white); position: fixed; top: 0; left: 0; border-right: 1px solid #E5E7EB; display: flex; flex-direction: column; padding: 2rem 1.5rem; transition: all 0.3s ease; z-index: 100; }
+        .brand { font-size: 24px; font-weight: 700; margin-bottom: 3rem; display: flex; align-items: center; gap: 10px; cursor: pointer; }
+        .nav-items { flex: 1; display: flex; flex-direction: column; gap: 0.5rem; }
+        .nav-item { padding: 12px 15px; border-radius: 12px; color: var(--gray); font-weight: 500; cursor: pointer; transition: all 0.3s; display: flex; align-items: center; gap: 12px; }
+        .nav-item:hover { background: #FEF2F2; color: var(--primary); }
+        .user-mini-profile { border-top: 1px solid #E5E7EB; padding-top: 1.5rem; display: flex; align-items: center; gap: 12px; cursor: pointer; }
+        .mini-avatar { width: 40px; height: 40px; border-radius: 50%; object-fit: cover; border: 2px solid var(--secondary); }
+        
+        /* Main Content */
+        .main-content { margin-left: var(--sidebar-width); width: calc(100% - var(--sidebar-width)); padding: 2rem 3rem; min-height: 100vh; }
+        
+        /* Profile Specific Styles */
+        .profile-header { background: white; border-radius: 16px; padding: 2rem; display: flex; align-items: center; gap: 2rem; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); border: 1px solid #E5E7EB; margin-bottom: 2rem; position: relative; }
+        .profile-img-container { position: relative; width: 120px; height: 120px; }
+        .profile-big-img { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; border: 4px solid var(--secondary); }
+        .camera-btn { position: absolute; bottom: 0; right: 0; background: var(--dark); color: white; width: 35px; height: 35px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: 0.2s; border: 2px solid white; }
+        .camera-btn:hover { background: var(--primary); }
+        
+        .profile-nav { display: flex; gap: 30px; border-bottom: 2px solid #E5E7EB; margin-bottom: 2rem; }
+        .p-nav-item { padding: 10px 5px; cursor: pointer; font-weight: 600; color: var(--gray); position: relative; bottom: -2px; border-bottom: 3px solid transparent; transition: 0.3s; }
+        .p-nav-item.active { color: var(--primary); border-bottom: 3px solid var(--primary); }
+        
+        .form-section { background: white; padding: 2rem; border-radius: 16px; border: 1px solid #E5E7EB; animation: fadeIn 0.5s; display: none; }
+        .form-section.active { display: block; }
+        
+        .form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1.5rem; }
+        .form-group { margin-bottom: 1rem; }
+        .form-group label { display: block; font-size: 0.9rem; font-weight: 500; margin-bottom: 8px; color: #374151; }
+        .form-input { width: 100%; padding: 12px; border: 1px solid #E5E7EB; border-radius: 10px; outline: none; font-family: 'Poppins', sans-serif; transition: 0.3s; }
+        .form-input:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1); }
+        
+        .section-divider { grid-column: 1 / -1; margin: 1.5rem 0 1rem 0; padding-bottom: 10px; border-bottom: 1px solid #E5E7EB; font-weight: 600; color: var(--primary); font-size: 1.1rem; }
+        
+        .btn-save { background: var(--dark); color: white; border: none; padding: 12px 30px; border-radius: 8px; font-weight: 600; cursor: pointer; margin-top: 2rem; transition: 0.3s; }
+        .btn-save:hover { background: var(--primary); transform: translateY(-2px); }
+
+        #toast-box { position: fixed; bottom: 30px; right: 30px; background: var(--dark); color: white; padding: 15px 25px; border-radius: 12px; z-index: 9999; opacity: 0; transform: translateY(20px); transition: all 0.3s ease; pointer-events: none; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1); display: flex; align-items: center; gap: 10px; }
+        #toast-box.show { opacity: 1; transform: translateY(0); }
+
+        @media (max-width: 768px) { .sidebar { transform: translateX(-100%); position: fixed; } .main-content { margin-left: 0; width: 100%; padding: 1.5rem; } .profile-header { flex-direction: column; text-align: center; } }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* Time Picker Styles */
+.day-circle { 
+    width: 40px; height: 40px; border-radius: 50%; 
+    border: 1px solid #E5E7EB; display: flex; align-items: center; justify-content: center; 
+    cursor: pointer; transition: 0.2s; font-weight: 500; color: var(--gray); background: white; user-select: none;
+}
+.day-circle.selected { 
+    background: #EFF6FF; color: #2563EB; border-color: #2563EB; font-weight: 700; 
+}
+.day-circle:hover { background: #F9FAFB; }
+/* Mobile tweak for small screens */
+@media (max-width: 400px) { .day-circle { width: 35px; height: 35px; font-size: 0.8rem; } }
+
+/* New Time Builder Styles */
+        .time-builder-area { background: #F9FAFB; padding: 15px; border-radius: 12px; border: 1px solid #E5E7EB; }
+        .time-select-group { display: flex; gap: 5px; align-items: center; }
+        .time-select { padding: 8px 2px; border: 1px solid #E5E7EB; border-radius: 6px; background: white; outline: none; text-align: center; cursor: pointer; font-family: 'Poppins', sans-serif;}
+        .schedule-tag { background: white; padding: 10px 15px; border-radius: 8px; margin-top: 8px; display: flex; justify-content: space-between; align-items: center; font-size: 0.9rem; border: 1px solid #E5E7EB; box-shadow: 0 1px 2px rgba(0,0,0,0.05); }
+        .btn-add-time { background: var(--dark); color: white; border: none; padding: 0 20px; height: 38px; border-radius: 8px; cursor: pointer; font-size: 0.9rem; transition: 0.2s; }
+        .btn-add-time:hover { background: var(--primary); }
+        .day-circle { width: 35px; height: 35px; border-radius: 50%; border: 1px solid #E5E7EB; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: 0.2s; font-weight: 500; color: var(--gray); background: white; user-select: none; font-size: 0.8rem; }
+        .day-circle.selected { background: #EFF6FF; color: #2563EB; border-color: #2563EB; font-weight: 700; }
+        
+        /* Mobile adjustment for time inputs */
+        @media (max-width: 500px) {
+            .time-controls-row { flex-direction: column; align-items: flex-start; gap: 15px; }
+            .btn-add-time { width: 100%; margin-top: 5px; }
+        }
