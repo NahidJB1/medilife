@@ -96,7 +96,7 @@ document.getElementById('headerRole').innerText = role ? role.charAt(0).toUpperC
 document.getElementById('accEmail').value = email;
 document.getElementById('accUid').value = uid;
 
-// Render Dynamic Fields (Same as before)
+// --- UPDATED DYNAMIC FIELDS ---
 const container = document.getElementById('dynamicFields');
 
 if (role === 'patient') {
@@ -108,9 +108,12 @@ if (role === 'patient') {
         <div class="form-group"><label>Height (cm)</label><input type="number" class="form-input" id="inp_height"></div>
         <div class="form-group"><label>Weight (kg)</label><input type="number" class="form-input" id="inp_weight"></div>
         <div class="form-group" style="grid-column:1/-1"><label>Address</label><input type="text" class="form-input" id="inp_address"></div>
+        
         <div class="section-divider">Emergency Contact</div>
         <div class="form-group"><label>Contact Name</label><input type="text" class="form-input" id="inp_emName"></div>
+        <div class="form-group"><label>Relation</label><input type="text" class="form-input" id="inp_emRelation" placeholder="e.g. Spouse"></div>
         <div class="form-group"><label>Phone</label><input type="tel" class="form-input" id="inp_emPhone"></div>
+        <div class="form-group"><label>Email</label><input type="email" class="form-input" id="inp_emEmail"></div>
     `;
 } else if (role === 'doctor') {
     container.innerHTML = `
@@ -143,6 +146,12 @@ if (role === 'patient') {
             </div>
             <input type="hidden" id="inp_time">
         </div>
+    `;
+} else if (role === 'pharmacy') {
+    container.innerHTML = `
+        <div class="form-group"><label>Pharmacy Name</label><input type="text" class="form-input" id="inp_name" value="${name}"></div>
+        <div class="form-group"><label>Registration Number</label><input type="text" class="form-input" id="inp_regNum"></div>
+        <div class="form-group" style="grid-column:1/-1"><label>Address</label><input type="text" class="form-input" id="inp_address"></div>
     `;
 }
 
