@@ -1,525 +1,515 @@
-        const db = firebase.firestore();
-        const auth = firebase.auth();
-        
-        // --- GET PARAMS & USER ---
-        const urlParams = new URLSearchParams(window.location.search);
-        const patientId = urlParams.get('pid');
-        const patientNameParam = urlParams.get('name') || 'Patient';
+ const db = firebase.firestore();
+    const auth = firebase.auth();
+    const modal = document.getElementById('dashboardModal');
+    const modalContent = document.getElementById('modalContent');
 
-        // Check Doctor Auth
-        const role = localStorage.getItem('userRole');
-        const docEmail = localStorage.getItem('userEmail');
-        const docName = localStorage.getItem('userName') || 'Dr. User';
-        
-        if (role !== 'doctor' || !docEmail) { window.location.href = 'index.html'; }
-        
-        // Setup UI
-        document.getElementById('sideName').innerText = docName;
-        document.getElementById('headerPatientName').innerText = patientNameParam;
-        document.getElementById('headerDate').innerText = new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
-        
-        // Fetch Side Avatar
-        db.collection('users').doc(docEmail).get().then(doc => {
-            if(doc.exists && doc.data().profilePic) document.getElementById('sideAvatar').src = doc.data().profilePic;
-        });
-
-        const currentUserData = { uid: docEmail, name: docName, role: 'doctor' };
-        
-        // --- GLOBAL VARIABLES FOR STATE ---
-        let currentViewingPatient = { id: patientId, name: patientNameParam };
-        let tempDoctorDetails = {}; 
-
-        // --- INITIALIZE PROFILE ---
-        if(!patientId) {
-            document.getElementById('mainProfileContainer').innerHTML = `<p style="text-align:center; color:red;">Error: No Patient ID provided.</p>`;
-        } else {
-            loadPatientProfile();
-        }
-
-        function loadPatientProfile() {
-            Promise.all([
-                db.collection('users').doc(currentUserData.uid).get(), // Doctor Info
-                db.collection('users').doc(patientId).get(),           // Patient Info
-                // Check Access via Appointments
-                db.collection('appointments')
-                    .where('doctorId', '==', currentUserData.uid)
-                    .where('patientId', '==', patientId)
-                    .get()
-            ]).then(([docSnap, patSnap, aptSnap]) => {
-                
-                const docInfo = docSnap.data() || {};
-                const patInfo = patSnap.exists ? patSnap.data() : { name: patientNameParam };
-                
-                // Update Name if fetched from DB
-                currentViewingPatient.name = patInfo.name;
-                document.getElementById('headerPatientName').innerText = patInfo.name;
-
-                // LOGIC: Check Access
-                let hasAccess = false;
-                let appointmentExists = !aptSnap.empty;
-                let accessRequestPending = false;
-                let relevantAptId = null;
-
-                if(appointmentExists) {
-                    aptSnap.forEach(doc => {
-                        const apt = doc.data();
-                        if (!relevantAptId || apt.status === 'accepted') relevantAptId = doc.id;
-                        if (apt.shareDocuments === true) hasAccess = true;
-                        if (apt.accessRequest === 'pending') accessRequestPending = true;
-                    });
-                }
-
-                renderProfileUI(hasAccess, appointmentExists, accessRequestPending, relevantAptId, docInfo, patInfo);
-            });
-        }
-
-        function renderProfileUI(hasAccess, appointmentExists, accessRequestPending, aptId, docInfo, patInfo) {
-            const container = document.getElementById('mainProfileContainer');
-            
-            // 1. Patient Header Info
-            let html = `
-                <div style="display:flex; align-items:center; gap:20px; margin-bottom:30px; padding-bottom:20px; border-bottom:1px solid #E5E7EB;">
-                    <img src="${patInfo.profilePic || 'https://via.placeholder.com/80'}" style="width:80px; height:80px; border-radius:50%; object-fit:cover; border:3px solid var(--secondary);">
-                    <div>
-                        <h1 style="font-size:1.8rem; margin:0; line-height:1.2;">${patInfo.name}</h1>
-                        <p style="color:var(--gray); font-size:1rem; margin-top:5px;">
-                            ${patInfo.gender || 'N/A'} • ${patInfo.age ? patInfo.age + ' Yrs' : 'Age N/A'}
-                            <span style="margin:0 10px; color:#E5E7EB;">|</span>
-                            <span style="color:var(--primary); font-weight:600;"><i class="fas fa-tint"></i> ${patInfo.bloodGroup || 'N/A'}</span>
-                        </p>
-                        <p style="color:var(--gray); font-size:0.9rem;">${patInfo.email || ''}</p>
-                    </div>
-                </div>`;
-
-            // 2. Logic Switch
-            if (hasAccess) {
-                // --- UNLOCKED VIEW ---
-                const docObjRaw = {
-                    name: docInfo.name || currentUserData.name,
-                    spec: docInfo.specialist || docInfo.speciality || 'Medical Professional',
-                    deg: docInfo.degrees || docInfo.degree || '',
-                    addr: docInfo.address || docInfo.chamberAddress || 'Address not available',
-                    time: docInfo.time || docInfo.schedule || '',
-                    phone: docInfo.phone || '',
-                    email: docInfo.email || ''
-                };
-                // Safe Stringify for onclick
-                const drDetailsObj = JSON.stringify(docObjRaw).replace(/"/g, '&quot;');
-
-                html += `
-                    <div class="modal-tabs">
-    <div class="m-tab-item active" onclick="switchTab('presc')"><i class="fas fa-prescription"></i> Prescriptions</div>
-    <div class="m-tab-item" onclick="switchTab('reports')"><i class="fas fa-file-medical-alt"></i> Reports & Labs</div>
-    <div class="m-tab-item" onclick="switchTab('patient-uploads')"><i class="fas fa-file-upload"></i> Patient Uploads</div>
-</div>
-
-                    <div id="tab-presc" class="tab-content">
-                        <div style="display:flex; gap:10px; margin-bottom:20px;">
-                            <button class="list-btn btn-book" style="padding:12px 20px; font-size:1rem;" 
-                                onclick="renderWritePrescription('${patInfo.name}', '${patInfo.gender||''}', '${patInfo.age||''}', ${drDetailsObj})">
-                                <i class="fas fa-pen"></i> Write New Prescription
-                            </button>
-                            <button class="list-btn" style="background:white; border:1px solid #E5E7EB; padding:12px 20px; font-size:1rem;" 
-                                onclick="triggerUpload('Prescription')">
-                                <i class="fas fa-upload"></i> Upload Rx File
-                            </button>
-                        </div>
-                        <div id="prescHistoryList">Loading...</div>
-                    </div>
-
-                    <div id="tab-reports" class="tab-content" style="display:none;">
-                        <div style="background:#F9FAFB; padding:20px; border-radius:12px; border:1px solid #E5E7EB; margin-bottom:20px; display:flex; gap:15px; align-items:flex-end;">
-                            <div style="flex:1;">
-                                <label style="font-size:0.85rem; font-weight:600; color:var(--gray); display:block; margin-bottom:5px;">Document Type</label>
-                                <select id="reportCategorySelect" class="rx-input" style="min-height:auto; height:45px; margin:0; background:white;">
-                                    <option value="General Report">General Lab Report</option>
-                                    <option value="Blood Test">Blood Test</option>
-                                    <option value="X-Ray">X-Ray</option>
-                                    <option value="ECG">ECG</option>
-                                    <option value="MRI">MRI</option>
-                                    <option value="CT Scan">CT Scan</option>
-                                    <option value="Ultrasound">Ultrasound</option>
-                                    <option value="Discharge Summary">Discharge Summary</option>
-                                    <option value="Other">Other</option>
-                                </select>
-                            </div>
-                            <button class="list-btn btn-view" style="height:45px; padding:0 25px;" onclick="triggerUpload('Report')">
-                                <i class="fas fa-cloud-upload-alt"></i> Upload
-                            </button>
-                        </div>
-                        <div id="reportHistoryList">Loading reports...</div>
-                    </div>
-
-                    <div id="tab-patient-uploads" class="tab-content" style="display:none;">
-    <div class="doc-category-title">Patient's Personal Uploads</div>
-    <div id="patientUploadsList">Loading...</div>
-</div>
-                `;
-                
-                container.innerHTML = html;
-
-// Load Lists (Updated to include Patient Uploads)
-loadPatientHistory('Prescription', 'prescHistoryList', docObjRaw, 'doctor');
-loadPatientHistory('Report', 'reportHistoryList', docObjRaw, 'doctor');
-loadPatientHistory('All', 'patientUploadsList', docObjRaw, 'patient');
-
-            } else {
-                // --- LOCKED VIEW ---
-                let lockMsg = '';
-                let actionButton = '';
-
-                if (!appointmentExists) {
-                    lockMsg = 'No confirmed appointment found with this patient.';
-                    actionButton = `<span style="color:#EF4444; background:#FEF2F2; padding:10px 20px; border-radius:8px; border:1px solid #FCA5A5;">
-                        <i class="fas fa-exclamation-triangle"></i> Booking Required
-                    </span>`;
-                } else {
-                    lockMsg = 'Patient has restricted document access.';
-                    if (accessRequestPending) {
-                        actionButton = `<button class="list-btn" disabled style="background:#F59E0B; color:white; padding:12px 25px; font-size:1rem;">
-                            <i class="fas fa-clock"></i> Access Request Pending
-                        </button>`;
-                    } else {
-                        actionButton = `<button class="list-btn btn-book" onclick="requestDocAccess('${aptId}')" style="padding:12px 25px; font-size:1rem;">
-                            Request Access
-                        </button>`;
-                    }
-                }
-
-                html += `
-                    <div class="access-denied-box">
-                        <i class="fas fa-lock" style="font-size:4rem; color:#D1D5DB; margin-bottom:20px;"></i>
-                        <h2 style="color:#374151; margin-bottom:10px;">Profile Locked</h2>
-                        <p style="color:#6B7280; margin-bottom:25px; font-size:1.1rem;">${lockMsg}</p>
-                        ${actionButton}
-                    </div>
-                `;
-                container.innerHTML = html;
-            }
-        }
-
-        function switchTab(tab) {
-    document.querySelectorAll('.m-tab-item').forEach(el => el.classList.remove('active'));
-    document.querySelectorAll('.tab-content').forEach(el => el.style.display = 'none');
+    // --- INIT DOCTOR DATA ---
     
-    // Set active tab styling
-    const tabs = document.querySelectorAll('.m-tab-item');
-    if(tab === 'presc') {
-        tabs[0].classList.add('active');
-        document.getElementById('tab-presc').style.display = 'block';
-    } else if(tab === 'reports') {
-        tabs[1].classList.add('active');
-        document.getElementById('tab-reports').style.display = 'block';
-    } else {
-        tabs[2].classList.add('active');
-        document.getElementById('tab-patient-uploads').style.display = 'block';
-    }
-}
+    // --- INIT DOCTOR DATA ---
+    const role = localStorage.getItem('userRole');
+    if(role !== 'doctor') { window.location.href = 'index.html'; }
 
-        // --- HISTORY LIST LOADER ---
-        function loadPatientHistory(typeFilter, containerId, fallbackDrDetails, uploadedByFilter) {
-    const container = document.getElementById(containerId);
-    container.innerHTML = '<div style="padding:20px; text-align:center; color:var(--gray);"><i class="fas fa-spinner fa-spin"></i> Fetching records...</div>';
+    const name = localStorage.getItem('userName') || 'Dr. User';
+    const storedEmail = localStorage.getItem('userEmail');
     
-    let query = db.collection('reports').where('patientId', '==', currentViewingPatient.id);
-    
-    if (typeFilter !== 'All') {
-        query = query.where('reportType', '==', typeFilter);
-    }
-    if (uploadedByFilter) {
-        query = query.where('uploadedBy', '==', uploadedByFilter);
+    // CRITICAL FIX: Always use the raw Email as the User ID
+    // This ensures the ID is consistent regardless of login method
+    if (!storedEmail) {
+        console.error("Critical: User email missing from session.");
+        window.location.href = 'index.html'; // Redirect to login if email is lost
     }
 
-    query.orderBy('timestamp', 'desc').get().then(snap => {
-        container.innerHTML = '';
-        if(snap.empty) { 
-            container.innerHTML = `<div class="empty-state" style="padding:40px; text-align:center; color:var(--gray); border:1px dashed #E5E7EB; border-radius:12px;">No records found.</div>`; 
-            return; 
-        }
+    const stableId = storedEmail; // ID is now "doctor@gmail.com"
+
+    const currentUserData = { name: name, role: 'doctor', uid: stableId, email: storedEmail };
+    db.collection('users').doc(stableId).get().then(doc => {
+    if(doc.exists && doc.data().profilePic) {
+        document.getElementById('sideAvatar').src = doc.data().profilePic;
+    }
+});
+    
+    document.getElementById('sideName').innerText = name;
+    document.getElementById('welcomeTitle').innerText = "Hello, " + name;
+    document.getElementById('currentDate').innerText = new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+    
+    // SYNC DOCTOR: Creates/Updates the doctor document with the Email ID
+    db.collection('users').doc(stableId).set({
+        name: currentUserData.name, 
+        role: 'doctor', 
+        email: currentUserData.email
+    }, { merge: true });
+
+
+    // --- TAB SWITCHING ---
+    function switchMainTab(el, tabName) {
+        document.querySelectorAll('.tab-item, .nav-item').forEach(t => t.classList.remove('active'));
+        if(el) el.classList.add('active');
         
+        const allNavs = document.querySelectorAll('.nav-item');
+        if(tabName === 'home') allNavs[0].classList.add('active');
+        if(tabName === 'community') allNavs[1].classList.add('active');
+
+        const contentArea = document.getElementById('tabContentArea');
+
+        if (tabName === 'home') {
+            contentArea.innerHTML = `
+            <div class="action-section">
+                <div class="section-title">Quick Actions</div>
+                <div class="quick-actions">
+                    <div class="action-card" onclick="openAppointmentList('pending')"><i class="fas fa-calendar-check" style="color:#F59E0B"></i><h4>Requests</h4><p>Pending Approvals</p></div>
+                    <div class="action-card" onclick="openAppointmentList('accepted')"><i class="fas fa-clipboard-list"></i><h4>View Bookings</h4><p>Confirmed Patients</p></div>
+                    <div class="action-card" onclick="openPatientSearch()"><i class="fas fa-user-injured"></i><h4>Find Patient</h4><p>View History & Prescribe</p></div>
+                </div>
+            </div>`;
+        } else if (tabName === 'community') {
+            loadCommunityFeed(contentArea);
+        }
+    }
+
+    function openAppointmentList(filterType) {
+    const title = filterType === 'pending' ? 'Appointment Requests' : 'Confirmed Bookings';
+    
+    // 1. Header Logic (Cleaned up - removed the broken 'else' block)
+    let headerHtml = `<h2 style="margin:0;">${title}</h2>`;
+    
+    if(filterType === 'pending') {
+        headerHtml = `
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
+            <h2 style="margin:0;">${title}</h2>
+            <span onclick="openAppointmentList('accepted')" style="cursor:pointer; color:var(--secondary); font-size:0.9rem; font-weight:600;">
+                <i class="fas fa-arrow-right"></i> Go to Bookings
+            </span>
+        </div>`;
+    } 
+    // ERROR WAS HERE: The 'else' block with 'btns = ...' was removed because 'doc' is not defined yet.
+
+    modalContent.innerHTML = `${headerHtml}<div id="aptList">Loading...</div>`;
+    modal.classList.add('active');
+
+    // 2. Fetch Data
+    db.collection('appointments').where('doctorId', '==', currentUserData.uid).get().then(snap => {
+        const list = document.getElementById('aptList'); list.innerHTML = '';
+        let count = 0;
         snap.forEach(doc => {
-            const d = doc.data();
-            const date = d.timestamp ? new Date(d.timestamp.toDate()).toLocaleDateString() : 'N/A';
-            const displayTitle = d.docCategory || d.reportType;
-            const docName = d.doctorName || fallbackDrDetails.name || 'Professional';
-            const icon = d.reportType === 'Prescription' ? 'fa-file-prescription' : 'fa-file-medical-alt';
+            const data = doc.data();
+            if(data.status !== filterType) return;
+            count++;
+            
+            let btns = '';
+            let infoExtra = '';
 
-            let viewAction = '';
-            if(d.isManual) {
-                const safeContent = d.content.replace(/`/g, "'").replace(/\$/g, "").replace(/\\/g, "\\\\");
-                const drDetailsStr = JSON.stringify(d.doctorDetails || fallbackDrDetails).replace(/"/g, '&quot;');
-                viewAction = `openDocViewer('manual', \`${safeContent}\`, '${displayTitle}', '${docName}', '${currentViewingPatient.name}', '${date}', ${drDetailsStr})`;
+            // 3. Button Logic (This is the correct place for it)
+            if(filterType === 'pending') {
+                const reqTime = data.preferredTime ? `<br><small style="color:#F59E0B; font-weight:600;"><i class="far fa-clock"></i> Requested: ${data.preferredTime}</small>` : '';
+                infoExtra = reqTime;
+                btns = `<button class="list-btn btn-accept" onclick="updateApt('${doc.id}','accepted')">Accept</button>
+                        <button class="list-btn btn-decline" onclick="updateApt('${doc.id}','declined')">Decline</button>`;
             } else {
-                viewAction = `openDocViewer('file', '${d.fileData}', '${displayTitle}')`;
+                // Confirmed Bookings: Now correctly uses 'goToPatientPage'
+                btns = `<button class="list-btn btn-time" title="Set Time" onclick="openTimePicker('${doc.id}', '${data.scheduledTime || ''}', '${data.preferredTime || ''}')"><i class="fas fa-clock"></i></button>
+                        <button class="list-btn btn-book" onclick="goToPatientPage('${data.patientId}', '${data.patientName}')">Profile</button>
+                        <button class="list-btn btn-cancel" onclick="cancelAppointment('${doc.id}')">Cancel</button>`;
             }
 
-            container.innerHTML += `
-                <div class="list-item" style="display:flex; justify-content:space-between; align-items:center; padding:15px; background:white; border:1px solid #E5E7EB; border-radius:12px; margin-bottom:10px;">
-                    <div style="display:flex; align-items:center; gap:15px;">
-                        <div style="background:#F3F4F6; width:45px; height:45px; border-radius:10px; display:flex; align-items:center; justify-content:center; color:var(--primary);">
-                            <i class="fas ${icon}"></i>
-                        </div>
-                        <div>
-                            <div style="font-weight:600; color:var(--dark);">${displayTitle}</div>
-                            <div style="font-size:0.8rem; color:var(--gray);">${date} • ${d.uploadedBy === 'doctor' ? 'Dr. ' + docName : 'Patient Upload'}</div>
-                        </div>
+            list.innerHTML += `
+                <div class="list-item">
+                    <div>
+                        <strong>${data.patientName}</strong>
+                        <br><small>Date: ${new Date(data.requestDate).toLocaleDateString()}</small>
+                        ${data.scheduledTime ? `<br><small style="color:#2563EB; font-weight:600;">Scheduled: ${data.scheduledTime}</small>` : ''}
+                        ${infoExtra}
                     </div>
-                    <button class="list-btn btn-view" onclick="${viewAction}">View</button>
+                    <div style="text-align:right; display:flex; gap:5px; flex-wrap:wrap; justify-content:flex-end;">${btns}</div>
                 </div>`;
         });
-    }).catch(err => {
-        console.error(err);
-        container.innerHTML = "Error loading records.";
+        if(count === 0) list.innerHTML = `<p>No ${filterType} appointments.</p>`;
     });
 }
 
-        // --- WRITE PRESCRIPTION UI ---
-        function renderWritePrescription(pName, pGen, pAge, docDetails) {
-            tempDoctorDetails = { ...docDetails, pAge: pAge || 'N/A', pGender: pGen || 'N/A' };
-            
-            let displayTime = docDetails.time || 'Not set';
-            if(displayTime.includes('|')) displayTime = displayTime.split('|').map(t => t.trim()).join('<br>');
 
-            const headerHtml = `
-                <div class="rx-header" style="border-bottom: 3px solid #000; padding-bottom: 15px; margin-bottom: 15px; display: flex; flex-wrap: wrap; gap: 20px; justify-content: space-between;">
-                    <div style="flex: 1; min-width: 200px; text-align: left;">
-                        <div style="display:flex; align-items:center; gap:5px; margin-bottom:10px;">
-                             <svg width="24" height="24" viewBox="0 0 100 100"><rect x="35" y="10" width="30" height="80" rx="5" fill="#EF4444" /><rect x="10" y="35" width="80" height="30" rx="5" fill="#EF4444" /></svg>
-                             <div style="font-weight:700; font-size:16px; line-height:1;"><span style="color:#EF4444;">MED</span><span style="color:#000;">e</span><span style="color:#22C55E;">LIFE</span></div>
-                        </div>
-                        <h3 style="font-size: 1.2rem;">Dr. ${docDetails.name}</h3>
-                        <p style="color: var(--primary); font-weight: 600;">${docDetails.spec}</p>
-                        <p style="color: var(--gray); font-size: 0.85rem;">${docDetails.deg}</p>
-                    </div>
-                    <div style="text-align: right; min-width: 200px; font-size: 0.85rem; color: #374151;">
-                        <p><strong>Chamber:</strong><br>${docDetails.addr}</p>
-                        <p><strong>Contact:</strong><br>${docDetails.phone || ''}<br>${docDetails.email || ''}</p>
-                    </div>
-                </div>
-                <div class="rx-meta">
-                    <span><strong>Pt:</strong> ${pName}</span>
-                    <span><strong>Age/Gen:</strong> ${pAge} / ${pGen}</span>
-                    <span><strong>Date:</strong> ${new Date().toLocaleDateString()}</span>
-                </div>
-            `;
-
-            document.getElementById('tab-presc').innerHTML = `
-                <div class="rx-paper">
-                    ${headerHtml}
-                    <textarea id="rxBody" class="rx-input" placeholder="Rx: \n\n1. Medicine Name - Dosage - Duration..."></textarea>
-                    <div style="margin-top:20px; text-align:right;">
-                        <button class="list-btn" style="background:var(--gray); color:white; margin-right:10px;" onclick="loadPatientProfile()">Cancel</button>
-                        <button class="list-btn btn-book" onclick="saveWrittenPrescription()">Save Prescription</button>
-                    </div>
-                </div>
-            `;
-        }
-
-        function saveWrittenPrescription() {
-            const content = document.getElementById('rxBody').value;
-            if(!content) { showToast("Prescription is empty"); return; }
-            
-            db.collection('reports').add({
-                patientId: currentViewingPatient.id,
-                patientName: currentViewingPatient.name,
-                doctorId: currentUserData.uid,
-                doctorName: currentUserData.name,
-                reportType: 'Prescription',
-                uploadedBy: 'doctor',
-                isManual: true,
-                content: content,
-                doctorDetails: tempDoctorDetails,
-                timestamp: firebase.firestore.FieldValue.serverTimestamp()
-            }).then(() => {
-                showToast("Prescription Saved");
-                loadPatientProfile(); // Reload to show list
-            });
-        }
-
-        // --- UPLOAD LOGIC ---
-        function triggerUpload(type) {
-            document.getElementById('uploadType').value = type;
-            document.getElementById('docUploadInput').click();
-        }
-
-        function handleDocUpload(input) {
-            const type = document.getElementById('uploadType').value; 
-            let specificCategory = type; 
-            if(type === 'Report') {
-                const selector = document.getElementById('reportCategorySelect');
-                if(selector) specificCategory = selector.value;
-            }
-
-            if(input.files && input.files[0]) {
-                const reader = new FileReader();
-                reader.onload = function(e) {
-                    db.collection('reports').add({
-                        patientId: currentViewingPatient.id,
-                        patientName: currentViewingPatient.name,
-                        doctorId: currentUserData.uid,
-                        doctorName: currentUserData.name,
-                        reportType: type,
-                        docCategory: specificCategory,
-                        uploadedBy: 'doctor',
-                        fileData: e.target.result,
-                        timestamp: firebase.firestore.FieldValue.serverTimestamp()
-                    }).then(() => {
-                        showToast("File Uploaded");
-                        loadPatientProfile(); 
-                    });
-                }
-                reader.readAsDataURL(input.files[0]);
-            }
-        }
-
-        // --- ACCESS REQUEST ---
-        function requestDocAccess(aptId) {
-            db.collection('appointments').doc(aptId).update({ accessRequest: 'pending' })
-            .then(() => { showToast("Request sent"); loadPatientProfile(); });
-        }
-
-        // --- DOCUMENT VIEWER (MODAL OVERLAY) ---
-        function openDocViewer(type, content, title, docName, patName, dateStr, drDetails) {
-            const viewerModal = document.getElementById('documentViewerModal');
-            const viewerContent = document.getElementById('docViewerContent');
-            let html = '';
-            
-            if (type === 'manual') {
-                // Reconstruct Rx Paper for View/Print
-                let dTime = drDetails.time || '';
-                if(dTime.includes('|')) dTime = dTime.split('|').map(t => t.trim()).join('<br>');
-
-                html = `
-                    <div class="rx-paper" style="border: none; box-shadow: none; padding: 10px; margin: 0 auto; background: white;">
-                        <div style="display: flex; flex-wrap: wrap; justify-content: space-between; border-bottom: 2px solid #000; padding-bottom: 15px; margin-bottom: 20px;">
-                            <div style="flex: 1; min-width: 250px; margin-bottom: 15px;">
-                                 <div style="display:flex; align-items:center; gap:8px; margin-bottom:15px;">
-                                     <svg width="24" height="24" viewBox="0 0 100 100"><rect x="35" y="10" width="30" height="80" rx="5" fill="#EF4444" /><rect x="10" y="35" width="80" height="30" rx="5" fill="#EF4444" /></svg>
-                                     <div style="font-family: 'Poppins', sans-serif; font-size: 18px; font-weight: 700; line-height: 1;"><span style="color: #EF4444;">MED</span><span style="color: #000;">e</span><span style="color: #22C55E;">LIFE</span></div>
-                                 </div>
-                                 <h2 style="font-size: 1.6rem; margin: 0; color: #111;">Dr. ${docName}</h2>
-                                 <p style="color: #EF4444; font-weight: 600; font-size: 0.95rem; margin-top: 2px;">${drDetails.spec || ''}</p>
-                                 <p style="color: #6B7280; font-size: 0.85rem;">${drDetails.deg || ''}</p>
-                            </div>
-                            <div style="text-align: right; min-width: 200px; font-size: 0.85rem; color: #374151;">
-                                 <p style="margin-bottom: 8px;"><strong>Chamber:</strong><br>${drDetails.addr || ''}</p>
-                                 ${dTime ? `<p style="margin-bottom: 8px;"><strong>Schedule:</strong><br>${dTime}</p>` : ''}
-                                 <p style="margin-top: 8px;"><strong>Contact:</strong><br>${drDetails.phone || ''}<br>${drDetails.email || ''}</p>
-                            </div>
-                        </div>
-
-                        <div style="display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 1px solid #E5E7EB; padding-bottom: 15px; margin-bottom: 25px; font-size: 0.95rem; color: #374151;">
-                            <div><span style="font-weight: 700; color: #111;">Patient: ${patName}</span><br>
-                                ${drDetails.pAge ? `<span style="font-size: 0.9rem; color: #4B5563;">Age: ${drDetails.pAge} • Gender: ${drDetails.pGender||'N/A'}</span>` : ''} 
-                            </div>
-                            <div style="text-align: right;"><span style="font-weight: 700;">Date: ${dateStr}</span></div>
-                        </div>
-
-                        <div class="rx-body-bg" style="background: #FAFAFA; padding: 30px; border-radius: 8px; border: 1px dashed #E5E7EB; min-height: 400px; position: relative;">
-                            <span style="font-family: 'Times New Roman', serif; font-style: italic; font-weight: bold; font-size: 2.5rem; color: #333; position: absolute; top: 20px; left: 20px;">Rx</span>
-                            <div style="margin-top: 60px; white-space: pre-wrap; font-family: 'Poppins', sans-serif; font-size: 1rem; line-height: 1.8; color: #1F2937;">${content}</div>
-                        </div>
-
-                        <div class="rx-footer" style="margin-top: 50px; display: flex; justify-content: space-between; align-items: flex-end; page-break-inside: avoid;">
-                            <small style="color: #9CA3AF;">Generated digitally via MEDeLIFE</small>
-                            <div style="text-align: center;">
-                                <div style="font-family: 'Cursive', serif; font-size: 1.5rem; color: #EF4444; opacity: 0.7;">Signed</div>
-                                <div style="border-top: 1px solid #333; width: 150px; margin-top: 5px;"></div>
-                                <small style="font-weight: 600;">Dr. ${docName}</small>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="no-print" style="margin-top: 20px; text-align: right; border-top: 1px solid #eee; padding-top: 15px;">
-                        <button class="list-btn btn-book" onclick="window.print()"><i class="fas fa-print"></i> Print / Save as PDF</button>
-                    </div>`;
-            } else {
-                html = `<h3 style="margin-bottom: 10px;">${title}</h3><iframe src="${content}" style="width: 100%; height: 500px; border: 1px solid #E5E7EB; border-radius: 8px; background: #f1f1f1;"></iframe>`;
-            }
-            viewerContent.innerHTML = html;
-            viewerModal.classList.add('active');
-        }
-
-        function closeDocViewer() { document.getElementById('documentViewerModal').classList.remove('active'); }
-        function showToast(msg) { const b = document.getElementById('toast-box'); document.getElementById('toast-msg').innerText = msg; b.classList.add('show'); setTimeout(()=>b.classList.remove('show'),3000); }
-
-        async function generateSmartSummary() {
-    // 1. SETUP
-    const GEMINI_API_KEY = 'AIzaSyB9AskDk3dwEmqHPvQ23SQrKoOqeejGO1w'; // Double check this is pasted correctly!
-    const modal = document.getElementById('aiModal');
-    const contentBox = document.getElementById('aiSummaryContent');
-    
-    if (GEMINI_API_KEY === 'YOUR_GEMINI_API_KEY') {
-        alert('Please paste your actual API Key in the code!');
-        return;
+    function updateApt(id, status) {
+        db.collection('appointments').doc(id).update({ status: status }).then(() => { showToast("Updated!"); openAppointmentList('pending'); });
     }
 
-    // 2. UI LOADING
-    modal.classList.add('active');
-    contentBox.innerHTML = '<div class="ai-loading"><i class="fas fa-circle-notch fa-spin"></i> Analyzing documents...</div>';
+    // [Task C] Replaced prompt with a UI Modal
+    // [Task B] Updated to show Requested Time
+    function openTimePicker(docId, currentVal, reqTime) {
+        let reqDisplay = '';
+        if(reqTime && reqTime !== 'undefined' && reqTime !== '') {
+            reqDisplay = `
+            <div style="background:#FFFBEB; border:1px solid #FCD34D; padding:10px; border-radius:8px; margin-bottom:15px; font-size:0.9rem; color:#92400E;">
+                <i class="far fa-clock"></i> <strong>Patient Requested:</strong> ${reqTime}
+            </div>`;
+        }
 
-    try {
-        // 3. FETCH DATA (Logic depends on which page we are on)
-        let patientRef = null;
+        modalContent.innerHTML = `
+            <h3>Set Appointment Time</h3>
+            <p style="color:var(--gray); margin-bottom:15px; font-size:0.9rem;">Confirm the time for this visit.</p>
+            ${reqDisplay}
+            <input type="text" id="newTimeInput" value="${currentVal && currentVal !== 'undefined' ? currentVal : ''}" class="rx-input" style="min-height:auto; margin-bottom:20px;" placeholder="e.g. 10:30 AM">
+            <button class="list-btn btn-book" style="width:100%; padding:12px;" onclick="saveTime('${docId}')">Save Time</button>
+        `;
+        modal.classList.add('active');
+    }
+
+    function saveTime(docId) {
+        const time = document.getElementById('newTimeInput').value;
+        if(!time) { showToast("Please enter a time"); return; }
         
-        // CHECK IF DOCTOR VIEW OR PATIENT VIEW
-        if (typeof currentViewingPatient !== 'undefined') {
-            // Doctor View
-            patientRef = currentViewingPatient.id;
-        } else {
-            // Patient View
-            patientRef = localStorage.getItem('userEmail');
-        }
+        db.collection('appointments').doc(docId).update({ scheduledTime: time }).then(()=>{ 
+            showToast("Time Updated Successfully"); 
+            // Return to list or close
+            openAppointmentList('accepted'); 
+        });
+    }
 
-        const snap = await db.collection('reports').where('patientId', '==', patientRef).get();
+    // [Task C] Removed native confirm alert
+    function cancelAppointment(id) {
+        db.collection('appointments').doc(id).delete().then(()=>{ 
+            showToast("Appointment Cancelled"); 
+            openAppointmentList('accepted'); 
+        });
+    }
 
-        if (snap.empty) {
-            contentBox.innerHTML = "No documents found to summarize.";
-            return;
-        }
+    function openPatientSearch() {
+        modalContent.innerHTML = `
+            <h2 style="text-align:center;">Patient Lookup</h2>
+            <div class="modern-search-bar"><i class="fas fa-search search-icon"></i>
+            <input type="text" id="sInput" class="search-input-field" placeholder="Enter Patient Email..."><button class="search-btn-modern" onclick="performSearch()">Search</button></div>
+            <div id="searchResults" style="max-height:400px;overflow-y:auto"></div>`;
+        modal.classList.add('active');
+    }
 
-        // 4. PREPARE DATA
-        let docsList = [];
-        snap.forEach(doc => {
-            const d = doc.data();
-            docsList.push({
-                type: d.reportType,
-                title: d.docCategory || 'General',
-                source: d.uploadedBy === 'doctor' ? 'Doctor' : 'Patient',
-                date: d.timestamp ? new Date(d.timestamp.toDate()).toLocaleDateString() : 'Unknown'
+    // [REPLACE] The entire performSearch function
+    function performSearch() {
+        const email = document.getElementById('sInput').value.trim();
+        const div = document.getElementById('searchResults');
+        if(!email) { showToast("Enter email"); return; }
+        div.innerHTML = 'Searching...';
+
+        db.collection('users').where('email', '==', email).get().then(snap => {
+            div.innerHTML = '';
+            if(snap.empty) { div.innerHTML = '<p style="text-align:center">No patient found.</p>'; return; }
+            
+            // [Fix B] Prevent Duplicates using a Set
+            const seenEmails = new Set();
+            
+            snap.forEach(doc => {
+                const d = doc.data();
+                // If we have already displayed this email in this search result, skip it
+                if(seenEmails.has(d.email)) return;
+                
+                seenEmails.add(d.email);
+                
+                div.innerHTML += `
+<div class="list-item">
+    <div>
+        <strong>${d.name}</strong>
+        <br><small>${d.email}</small>
+    </div>
+    <button class="list-btn btn-view" onclick="goToPatientPage('${doc.id}', '${d.name}')">View Profile</button>
+</div>`;
             });
         });
+    }
 
-        const prompt = `
-            Analyze this medical document list: ${JSON.stringify(docsList)}
-            Provide a brief HTML summary with 2 bullet points:
-            <ul><li><strong>From Doctor:</strong> [Summary]</li><li><strong>My Uploads:</strong> [Summary]</li></ul>.
-            Keep it short. No markdown.
+    function goToPatientPage(pid, pname) {
+    // Encodes the name to ensure special characters don't break the URL
+    window.location.href = `doctor-patient-view.html?pid=${pid}&name=${encodeURIComponent(pname)}`;
+}
+
+
+    // [REPLACE] The entire openDocViewer function
+    function openDocViewer(type, content, title, docName = 'Doctor', patName = 'Patient', dateStr = 'N/A', drDetails = {}) {
+        const viewerModal = document.getElementById('documentViewerModal');
+        const viewerContent = document.getElementById('docViewerContent');
+        
+        let html = '';
+        
+        if (type === 'manual') {
+            const dSpec = drDetails.spec || 'Medical Professional';
+            const dDeg = drDetails.deg || '';
+            const dAddr = drDetails.addr || 'Address not available';
+            
+            // Format Schedule: Split by '|' and join with <br> for multi-line
+            let dTime = drDetails.time || '';
+            if(dTime.includes('|')) {
+                dTime = dTime.split('|').map(t => t.trim()).join('<br>');
+            }
+
+            const dPhone = drDetails.phone || '';
+            const dEmail = drDetails.email || '';
+
+            html = `
+                <div class="rx-paper" style="border: none; box-shadow: none; padding: 10px; max-width: 800px; margin: 0 auto; background: white;">
+                    
+                    <div style="display: flex; flex-wrap: wrap; justify-content: space-between; border-bottom: 2px solid #000; padding-bottom: 15px; margin-bottom: 20px;">
+                        
+                        <div style="flex: 1; min-width: 250px; margin-bottom: 15px;">
+                             <div style="display:flex; align-items:center; gap:8px; margin-bottom:15px;">
+                                 <svg width="24" height="24" viewBox="0 0 100 100"><rect x="35" y="10" width="30" height="80" rx="5" fill="#EF4444" /><rect x="10" y="35" width="80" height="30" rx="5" fill="#EF4444" /></svg>
+                                 <div style="font-family: 'Poppins', sans-serif; font-size: 18px; font-weight: 700; line-height: 1;"><span style="color: #EF4444;">MED</span><span style="color: #000;">e</span><span style="color: #22C55E;">LIFE</span></div>
+                             </div>
+                             
+                             <h2 style="font-size: 1.6rem; margin: 0; color: #111;">Dr. ${docName}</h2>
+                             <p style="color: #EF4444; font-weight: 600; font-size: 0.95rem; margin-top: 2px;">${dSpec}</p>
+                             ${dDeg ? `<p style="color: #6B7280; font-size: 0.85rem; max-width: 300px;">${dDeg}</p>` : ''}
+                        </div>
+
+                        <div style="text-align: right; min-width: 200px; font-size: 0.85rem; color: #374151;">
+                             <p style="margin-bottom: 8px;"><strong>Chamber:</strong><br>${dAddr}</p>
+                             ${dTime ? `<p style="margin-bottom: 8px;"><strong>Schedule:</strong><br>${dTime}</p>` : ''}
+                             <p style="margin-top: 8px;"><strong>Contact:</strong><br>
+                                ${dPhone ? dPhone + '<br>' : ''}
+                                ${dEmail ? dEmail : ''}
+                             </p>
+                        </div>
+                    </div>
+
+                    <div style="display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 1px solid #E5E7EB; padding-bottom: 15px; margin-bottom: 25px; font-size: 0.95rem; color: #374151;">
+                        <div>
+                            <span style="font-weight: 700; color: #111;">Patient: ${patName}</span>
+                            ${drDetails.pAge ? `<br><span style="font-size: 0.9rem; color: #4B5563;">Age: ${drDetails.pAge} • Gender: ${drDetails.pGender||'N/A'}</span>` : ''} 
+                            <br><span style="font-size: 0.85rem; color: #6B7280;">Rx ID: #${Math.floor(Math.random()*10000) + 1000}</span>
+                        </div>
+                        <div style="text-align: right;">
+                            <span style="font-weight: 700;">Date: ${dateStr}</span><br>
+                            <span style="font-size: 0.85rem; color: #6B7280;">Consultation: Online</span>
+                        </div>
+                    </div>
+
+                    <div class="rx-body-bg" style="background: #FAFAFA; padding: 30px; border-radius: 8px; border: 1px dashed #E5E7EB; min-height: 400px; position: relative;">
+                        <span style="font-family: 'Times New Roman', serif; font-style: italic; font-weight: bold; font-size: 2.5rem; color: #333; position: absolute; top: 20px; left: 20px;">Rx</span>
+                        <div style="margin-top: 60px; white-space: pre-wrap; font-family: 'Poppins', sans-serif; font-size: 1rem; line-height: 1.8; color: #1F2937;">${content}</div>
+                    </div>
+
+                    <div class="rx-footer" style="margin-top: 50px; display: flex; justify-content: space-between; align-items: flex-end; page-break-inside: avoid;">
+                        <small style="color: #9CA3AF;">Generated digitally via MEDeLIFE</small>
+                        <div style="text-align: center;">
+                            <div style="font-family: 'Cursive', serif; font-size: 1.5rem; color: #EF4444; opacity: 0.7;">Signed</div>
+                            <div style="border-top: 1px solid #333; width: 150px; margin-top: 5px;"></div>
+                            <small style="font-weight: 600;">Dr. ${docName}</small>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="no-print" style="margin-top: 20px; text-align: right; border-top: 1px solid #eee; padding-top: 15px;">
+                    <button class="list-btn btn-book" onclick="window.print()">
+                        <i class="fas fa-print"></i> Print / Save as PDF
+                    </button>
+                </div>
+            `;
+        } else {
+            // File View
+            html = `
+                <h3 style="margin-bottom: 10px;">${title}</h3>
+                <iframe src="${content}" style="width: 100%; flex: 1; border: 1px solid #E5E7EB; border-radius: 8px; background: #f1f1f1;"></iframe>
+            `;
+        }
+        
+        viewerContent.innerHTML = html;
+        viewerModal.classList.add('active');
+    }
+
+    
+    // --- HELPER: Tabs Switcher ---
+    function switchModalTab(tab) {
+        document.querySelectorAll('.m-tab-item').forEach(el => el.classList.remove('active'));
+        document.querySelectorAll('.m-tab-content').forEach(el => el.style.display = 'none');
+        
+        if(tab === 'presc') {
+            document.querySelectorAll('.m-tab-item')[0].classList.add('active');
+            document.getElementById('tab-presc').style.display = 'block';
+        } else {
+            document.querySelectorAll('.m-tab-item')[1].classList.add('active');
+            document.getElementById('tab-reports').style.display = 'block';
+        }
+    }
+
+    // --- HELPER: Request Access ---
+    function requestDocAccess(aptId) {
+        db.collection('appointments').doc(aptId).update({
+            accessRequest: 'pending'
+        }).then(() => {
+            showToast("Request sent to patient");
+            openDoctorPatientView(currentViewingPatient.id, currentViewingPatient.name); // Refresh view
+        });
+    }
+
+    // --- HELPER: Write Prescription UI ---
+   // --- HELPER: Write Prescription UI (Updated Layout) ---
+    // We store the current doctor details in a global variable for saving later
+    let tempDoctorDetails = {};
+
+    function renderWritePrescription(pName, pGen, pAge, docDetails) {
+        // Store patient meta in the docDetails snapshot for saving
+        tempDoctorDetails = {
+            ...docDetails,
+            pAge: pAge || 'N/A',
+            pGender: pGen || 'N/A'
+        };
+
+        // Format Time for Display: Split by '|' for multi-line
+        let displayTime = docDetails.time || 'Not set';
+        if(displayTime.includes('|')) {
+            displayTime = displayTime.split('|').map(t => t.trim()).join('<br>');
+        }
+
+        const headerHtml = `
+            <div class="rx-header" style="border-bottom: 3px solid #000; padding-bottom: 15px; margin-bottom: 15px; display: flex; flex-wrap: wrap; gap: 20px; justify-content: space-between;">
+                
+                <div style="flex: 1; min-width: 200px; text-align: left;">
+                    <div style="display:flex; align-items:center; gap:5px; margin-bottom:10px;">
+                         <svg width="24" height="24" viewBox="0 0 100 100"><rect x="35" y="10" width="30" height="80" rx="5" fill="#EF4444" /><rect x="10" y="35" width="80" height="30" rx="5" fill="#EF4444" /></svg>
+                         <div style="font-weight:700; font-size:16px; line-height:1;"><span style="color:#EF4444;">MED</span><span style="color:#000;">e</span><span style="color:#22C55E;">LIFE</span></div>
+                    </div>
+                    <h3 style="font-size: 1.2rem; margin-bottom: 2px;">Dr. ${docDetails.name}</h3>
+                    <p style="color: var(--primary); font-weight: 600; font-size: 0.9rem;">${docDetails.spec}</p>
+                    <p style="color: var(--gray); font-size: 0.85rem;">${docDetails.deg}</p>
+                </div>
+
+                <div style="text-align: right; min-width: 200px; font-size: 0.85rem; color: #374151;">
+                    <p style="margin-bottom: 5px;"><strong>Chamber:</strong><br>${docDetails.addr || 'Address not set'}</p>
+                    <p style="margin-bottom: 5px;"><strong>Schedule:</strong><br>${displayTime}</p>
+                    <p><strong>Contact:</strong><br>${docDetails.phone || ''}<br>${docDetails.email || ''}</p>
+                </div>
+            </div>
+
+            <div class="rx-meta">
+                <span><strong>Pt:</strong> ${pName}</span>
+                <span><strong>Age:</strong> ${pAge ? pAge+'Y' : '-'} &nbsp;|&nbsp; <strong>Gender:</strong> ${pGen ? pGen : '-'}</span>
+                <span><strong>Date:</strong> ${new Date().toLocaleDateString()}</span>
+            </div>
         `;
 
-        // 5. CALL API WITH ERROR HANDLING
-        // Changed 'gemini-1.5-flash' to 'gemini-pro'
-const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${GEMINI_API_KEY}`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
-        });
+        document.getElementById('tab-presc').innerHTML = `
+            <div class="rx-paper">
+                ${headerHtml}
+                <textarea id="rxBody" class="rx-input" placeholder="Rx: \n\n1. Medicine Name - Dosage - Duration..."></textarea>
+                <div style="margin-top:20px; text-align:right;">
+                    <button class="list-btn" style="background:var(--gray); color:white; margin-right:10px;" onclick="openDoctorPatientView('${currentViewingPatient.id}', '${currentViewingPatient.name}')">Cancel</button>
+                    <button class="list-btn btn-book" onclick="saveWrittenPrescription()">Save & Print</button>
+                </div>
+            </div>
+        `;
+    }
 
-        const result = await response.json();
+    function saveWrittenPrescription() {
+    const content = document.getElementById('rxBody').value;
+    if(!content) { showToast("Prescription is empty"); return; }
+    
+    db.collection('reports').add({
+        patientId: currentViewingPatient.id, // Ensure this is the patient's email
+        patientName: currentViewingPatient.name,
+        doctorId: currentUserData.uid,
+        doctorName: currentUserData.name,
+        reportType: 'Prescription',
+        uploadedBy: 'doctor', 
+        isManual: true,
+        content: content,
+        doctorDetails: tempDoctorDetails,
+        timestamp: firebase.firestore.FieldValue.serverTimestamp()
+    }).then(() => {
+        showToast("Prescription Saved");
+        // Use the function specific to the page you are on
+        if(typeof loadPatientProfile === "function") loadPatientProfile(); 
+        else if(typeof openDoctorPatientView === "function") openDoctorPatientView(currentViewingPatient.id, currentViewingPatient.name);
+    });
+}
 
-        // *** DEBUGGING: CHECK FOR API ERROR ***
-        if (!response.ok || result.error) {
-            console.error("Gemini API Error:", result); // <--- LOOK IN CONSOLE FOR THIS
-            throw new Error(result.error?.message || "API Blocked Request");
+    // --- HELPER: Upload Logic ---
+    function triggerUpload(type) {
+        document.getElementById('uploadType').value = type;
+        document.getElementById('docUploadInput').click();
+    }
+
+    function handleDocUpload(input) {
+        const type = document.getElementById('uploadType').value; // 'Prescription' or 'Report'
+        
+        // Determine specific category
+        let specificCategory = type; 
+        if(type === 'Report') {
+            const selector = document.getElementById('reportCategorySelect');
+            if(selector) specificCategory = selector.value; // e.g., "X-Ray"
         }
 
-        const aiText = result.candidates[0].content.parts[0].text;
-        contentBox.innerHTML = aiText;
-
-    } catch (error) {
-        console.error("Full Error Details:", error);
-        contentBox.innerHTML = `<span style="color:red; font-size:0.9rem;">
-            <strong>Error:</strong> ${error.message} <br><br>
-            <em>Open Console (F12) to see more details.</em>
-        </span>`;
+        if(input.files && input.files[0]) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                // In doctor-dashboard.html -> handleDocUpload()
+db.collection('reports').add({
+    patientId: currentViewingPatient.id,
+    patientName: currentViewingPatient.name,
+    doctorId: currentUserData.uid,
+    doctorName: currentUserData.name,
+    reportType: type,
+    docCategory: specificCategory,
+    uploadedBy: 'doctor', // <--- ADD THIS LINE
+    fileData: e.target.result,
+    timestamp: firebase.firestore.FieldValue.serverTimestamp()
+})
+                .then(() => {
+                    showToast(specificCategory + " Uploaded");
+                    openDoctorPatientView(currentViewingPatient.id, currentViewingPatient.name); // Refresh to show new item
+                });
+            }
+            reader.readAsDataURL(input.files[0]);
+        }
     }
+
+
+    // --- SHARED UTILS ---
+    function viewFile(data) { const win = window.open(); win.document.write(`<iframe src="${data}" style="width:100%;height:100%;border:none;"></iframe>`); }
+    function closeModal() { modal.classList.remove('active'); }
+    function showToast(msg) { const b = document.getElementById('toast-box'); document.getElementById('toast-msg').innerText = msg; b.classList.add('show'); setTimeout(()=>b.classList.remove('show'),3000); }
+    function logout() { localStorage.clear(); window.location.href = 'index.html'; }
+
+
+    
+    function toggleLike(pid, liked) { db.collection('posts').doc(pid).update({ likes: liked ? firebase.firestore.FieldValue.arrayRemove(currentUserData.uid) : firebase.firestore.FieldValue.arrayUnion(currentUserData.uid) }); }
+    function sendComment(pid) {
+        const t = document.getElementById('i-'+pid).value; if(!t) return;
+        db.collection('posts').doc(pid).update({ comments: firebase.firestore.FieldValue.arrayUnion({ text: t, author: currentUserData.name, role: 'doctor' }) });
+    }
+
+    // --- FIX: MISSING COMMUNITY FUNCTION ---
+    function loadCommunityFeed(container) {
+        container.innerHTML = `
+            <div class="create-post-card">
+                <textarea id="newPostText" class="cp-input-area" style="width:100%; border:none; outline:none;" placeholder="Share a health tip..."></textarea>
+                <div style="text-align:right; margin-top:10px;">
+                    <button class="list-btn btn-book" onclick="publishPost()">Post</button>
+                </div>
+            </div>
+            <div id="feedStream">Loading...</div>
+        `;
+
+        db.collection('posts').orderBy('timestamp', 'desc').onSnapshot(snap => {
+            const feed = document.getElementById('feedStream');
+            if(!feed) return;
+            feed.innerHTML = '';
+            snap.forEach(doc => {
+                const p = doc.data();
+                feed.innerHTML += `
+                    <div class="post-card">
+                        <div class="post-header"><strong>${p.authorName}</strong> <span class="role-badge role-${p.authorRole}">${p.authorRole}</span></div>
+                        <p>${p.content}</p>
+                        <div class="interaction-bar"><small>${p.likes ? p.likes.length : 0} Likes</small></div>
+                    </div>`;
+            });
+        });
+    }
+
+    function publishPost() {
+        const txt = document.getElementById('newPostText').value;
+        if(txt) db.collection('posts').add({
+            authorName: currentUserData.name, authorRole: 'doctor', authorId: currentUserData.uid,
+            content: txt, likes: [], comments: [], timestamp: firebase.firestore.FieldValue.serverTimestamp()
+        });
+    }
+
+    
+
+function closeDocViewer() {
+    document.getElementById('documentViewerModal').classList.remove('active');
 }
