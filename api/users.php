@@ -59,4 +59,83 @@ elseif ($action == 'get_doctors') {
     }
     echo json_encode($doctors);
 }
+
+// 5. UPDATE PROFILE (New Section)
+elseif ($action == 'update_profile') {
+    $uid = $_POST['uid'];
+
+    // A. Handle Image Upload
+    if (isset($_FILES['profile_pic']) && $_FILES['profile_pic']['error'] === UPLOAD_ERR_OK) {
+        $target_dir = "../uploads/";
+        // Create folder if it doesn't exist
+        if (!file_exists($target_dir)) {
+            mkdir($target_dir, 0777, true);
+        }
+        
+        $fileName = time() . "_" . basename($_FILES["profile_pic"]["name"]);
+        $target_file = $target_dir . $fileName;
+        
+        if (move_uploaded_file($_FILES["profile_pic"]["tmp_name"], $target_file)) {
+            // Update DB with new image path (we save the relative path 'uploads/filename')
+            $db_path = "uploads/" . $fileName;
+            $stmt = $conn->prepare("UPDATE users SET profile_pic = ? WHERE uid = ?");
+            $stmt->bind_param("ss", $db_path, $uid);
+            $stmt->execute();
+        }
+    }
+
+    // B. Capture All Possible Fields (from both Patient and Doctor forms)
+    // We use null coalescing (??) to handle missing fields safely
+    $name = $_POST['name'] ?? null;
+    $phone = $_POST['phone'] ?? null;
+    $address = $_POST['address'] ?? null;
+    
+    // Doctor Specific
+    $specialist = $_POST['specialist'] ?? null;
+    $degrees = $_POST['degrees'] ?? null;
+    $time = $_POST['time'] ?? null;
+    
+    // Patient Specific (Map JS keys to DB columns)
+    $gender = $_POST['gender'] ?? null;
+    $age = $_POST['age'] ?? null;
+    $blood_group = $_POST['bloodGroup'] ?? null; // JS sends 'bloodGroup', mapped to DB 'blood_group'
+    $height = $_POST['height'] ?? null;
+    $weight = $_POST['weight'] ?? null;
+    $em_name = $_POST['emName'] ?? null;         // JS sends 'emName'
+    $em_phone = $_POST['emPhone'] ?? null;       // JS sends 'emPhone'
+
+    // C. Update Database
+    // IMPORTANT: This assumes your 'users' table has these columns. 
+    // If a column is missing in your DB, this query will fail. 
+    // Ensure you have added these columns to your MySQL table.
+    $sql = "UPDATE users SET 
+            name = COALESCE(?, name),
+            phone = COALESCE(?, phone),
+            address = COALESCE(?, address),
+            specialist = COALESCE(?, specialist),
+            degrees = COALESCE(?, degrees),
+            time = COALESCE(?, time),
+            gender = COALESCE(?, gender),
+            age = COALESCE(?, age),
+            blood_group = COALESCE(?, blood_group),
+            height = COALESCE(?, height),
+            weight = COALESCE(?, weight),
+            em_name = COALESCE(?, em_name),
+            em_phone = COALESCE(?, em_phone)
+            WHERE uid = ?";
+
+    $stmt = $conn->prepare($sql);
+    // 's' repeats 13 times for inputs + 1 time for uid = 14 strings
+    $stmt->bind_param("ssssssssssssss", 
+        $name, $phone, $address, $specialist, $degrees, $time, 
+        $gender, $age, $blood_group, $height, $weight, $em_name, $em_phone, 
+        $uid
+    );
+
+    if ($stmt->execute()) {
+        echo json_encode(["status" => "success"]);
+    } else {
+        echo json_encode(["status" => "error", "message" => $conn->error]);
+    }
+}
 ?>
