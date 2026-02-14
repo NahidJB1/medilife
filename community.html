@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Community Feed | MEDeLIFE</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+  <link rel="stylesheet" href="css/community.css">
+</head>
+<body>
+
+    <nav class="navbar">
+    <a href="#" id="navLogo" class="logo-container">
+        <svg width="35" height="35" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+            <rect x="35" y="10" width="30" height="80" rx="5" fill="#EF4444" />
+            <rect x="10" y="35" width="80" height="30" rx="5" fill="#EF4444" />
+        </svg>
+        <div style="font-family: 'Poppins', sans-serif; font-size: 20px; font-weight: 700; line-height: 1;">
+            <span style="color: #EF4444;">MED</span><span style="color: #000;">e</span><span style="color: #22C55E;">LIFE</span>
+        </div>
+    </a>
+    <ul class="nav-links">
+        <li><a href="dashboard.html">Dashboard</a></li>
+        <li><a href="#" class="active">Community</a></li>
+        <li><a href="dashboard.html" onclick="localStorage.setItem('openProfile','true')">Profile</a></li>
+    </ul>
+</nav>>
+
+    <div class="main-container">
+
+        <main class="feed">
+
+            <div class="create-post-card">
+                <div class="cp-tabs">
+                    <div class="cp-tab active" onclick="setPostType('question')">Ask Question</div>
+                    <div class="cp-tab hidden" id="tabArticle" onclick="setPostType('article')">Write Article</div>
+                </div>
+                
+                <div class="input-area">
+                    <input type="text" id="postTitle" class="post-title-input" placeholder="Article Headline...">
+                    <textarea id="postContent" placeholder="What health question is on your mind?"></textarea>
+                </div>
+
+                <div class="cp-footer">
+                    <small style="color:var(--gray)">Be respectful. Medical advice here is not a substitute for professional care.</small>
+                    <button class="btn-post" onclick="submitPost()">Post</button>
+                </div>
+            </div>
+
+            <div id="feedContainer">
+                <div style="text-align:center; padding:40px; color:gray;">
+                    <i class="fas fa-spinner fa-spin"></i> Loading community...
+                </div>
+            </div>
+
+        </main>
+
+        <aside class="sidebar-right">
+            <div class="widget">
+                <h3>Trending Topics</h3>
+                <div>
+                    <span class="topic-tag">#FluSeason</span>
+                    <span class="topic-tag">#MentalHealth</span>
+                    <span class="topic-tag">#DietTips</span>
+                    <span class="topic-tag">#VaccineInfo</span>
+                    <span class="topic-tag">#Diabetes</span>
+                </div>
+            </div>
+
+            <div class="widget">
+                <h3>Community Guidelines</h3>
+                <ul style="padding-left: 20px; color: var(--gray); font-size: 0.9rem; line-height: 1.8;">
+                    <li>Respect patient privacy.</li>
+                    <li>No hate speech or bullying.</li>
+                    <li>Doctors must verify identity.</li>
+                    <li>Report suspicious content.</li>
+                </ul>
+            </div>
+        </aside>
+
+    </div>
+
+    <div id="toast-box"><i class="fas fa-info-circle"></i> <span id="toast-msg">Notification</span></div>
+
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore-compat.js"></script>
+    <script src="js/firebase-init.js"></script>
+    <script src="js/community.js"></script>
+
+</body>
+</html>
