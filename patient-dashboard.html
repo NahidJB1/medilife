@@ -55,9 +55,29 @@
             <div class="action-section">
                 <div class="section-title">Quick Actions</div>
                 <div class="quick-actions" id="actionGrid">
-                    <div class="action-card" onclick="openAppointmentList('pending')"><i class="fas fa-calendar-check" style="color:#F59E0B"></i><h4>Requests</h4><p>Pending Approvals</p></div>
-                    <div class="action-card" onclick="openAppointmentList('accepted')"><i class="fas fa-clipboard-list"></i><h4>View Bookings</h4><p>Confirmed Patients</p></div>
-                    <div class="action-card" onclick="openPatientSearch()"><i class="fas fa-user-injured"></i><h4>Find Patient</h4><p>View History & Prescribe</p></div>
+                    <div class="action-card" onclick="openUploadModal()">
+    <i class="fas fa-file-upload"></i>
+    <h4>Upload Report</h4>
+    <p>X-Ray, ECG, etc.</p>
+</div>
+
+<div class="action-card" onclick="openFindDoctorModal()">
+    <i class="fas fa-user-md"></i>
+    <h4>Find Doctors</h4>
+    <p>Book Appointment</p>
+</div>
+
+<div class="action-card" onclick="openPatientSchedule()">
+    <i class="fas fa-calendar-alt"></i>
+    <h4>View Schedule</h4>
+    <p>Check Appointments</p>
+</div>
+
+<div class="action-card" onclick="window.location.href='patient-reports.html'">
+    <i class="fas fa-file-medical-alt"></i>
+    <h4>My Reports</h4>
+    <p>View History</p>
+</div>
                 </div>
             </div>
         </div>
