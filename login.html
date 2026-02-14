@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login & Register | MEDeLIFE</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="css/login.css">
+
+</head>
+<body class="login-body">
+
+    <div class="bg-shape shape-1"></div>
+    <div class="bg-shape shape-2"></div>
+
+    <div class="login-container">
+        <a href="index.html" class="close-btn"><i class="fas fa-times"></i></a>
+
+        <div class="success-overlay" id="successOverlay">
+            <div class="checkmark-circle">
+                <i class="fas fa-check"></i>
+            </div>
+            <div class="success-text">Registration Successful!</div>
+            <div class="success-sub">Log in now...</div>
+        </div>
+
+        <div class="form-header">
+            <h2 id="headerTitle">Welcome Back</h2>
+            <p id="headerSubtitle">Enter your details to access your records.</p>
+        </div>
+
+        <div class="toggle-btn-container" id="toggleContainer">
+            <div class="slider"></div>
+            <button id="loginBtn" class="toggle-btn active" onclick="switchMode('login')">Login</button>
+            <button id="registerBtn" class="toggle-btn" onclick="switchMode('register')">Register</button>
+        </div>
+
+        <form id="loginForm" class="auth-form" onsubmit="handleLogin(event)">
+            <div class="input-group">
+                <label>Email Address</label>
+                <input type="email" id="loginEmail" placeholder="you@example.com" required>
+            </div>
+            <div class="input-group">
+                <label>Password</label>
+                <input type="password" id="loginPassword" placeholder="••••••••" required>
+            </div>
+            <button type="submit" class="btn-primary" id="btnSignIn">Sign In</button>
+            <p class="form-footer">Forgot Password? <a href="#">Reset here</a></p>
+        </form>
+
+        <form id="registerForm" class="auth-form hidden" onsubmit="handleRegister(event)">
+            
+            <div class="input-group">
+                <label>I am a:</label>
+                <select id="regRole" onchange="toggleRoleFields()" required>
+                    <option value="patient">Patient</option>
+                    <option value="doctor">Doctor</option>
+                    <option value="pharmacy">Pharmacy Staff</option>
+                </select>
+            </div>
+
+            <div class="input-group">
+                <label>Full Name</label>
+                <input type="text" id="regName" placeholder="Your Name" required>
+                <span class="error-msg">Name cannot contain numbers or symbols.</span>
+            </div>
+
+            <div class="input-group">
+                <label>National ID / Passport No.</label>
+                <input type="text" id="regNationalID" placeholder="A12345678" style="text-transform: uppercase;" required>
+                <span class="error-msg">Only letters and numbers allowed.</span>
+            </div>
+            
+            <div id="doctorField" class="input-group hidden">
+                <label>Medical Registration Number</label>
+                <input type="text" id="regDocID" placeholder="MMC12345">
+            </div>
+
+            <div id="pharmacyField" class="input-group hidden">
+                <label>Pharmacy License No.</label>
+                <input type="text" id="regLicense" placeholder="L-98765">
+            </div>
+
+            <div class="input-group">
+                <label>Phone Number</label>
+                <input type="tel" id="regPhone" placeholder="0123456789" required>
+                <span class="error-msg">Numbers only. No letters or symbols.</span>
+            </div>
+
+            <div class="input-group">
+                <label>Email Address</label>
+                <input type="email" id="regEmail" placeholder="email@example.com" required>
+                <span class="error-msg" id="emailErrorMsg">Invalid Email</span>
+            </div>
+
+            <div class="input-group">
+                <label>Password</label>
+                <input type="password" id="regPassword" placeholder="Minimum 6 characters" minlength="6" required>
+            </div>
+
+            <button type="submit" class="btn-primary btn-success" id="btnRegister">Create Account</button>
+        </form>
+
+    </div>
+
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore-compat.js"></script>
+
+   <script src="js/firebase-init.js"></script>
+
+  <script src="js/login.js"></script>
+
+</body>
+</html>s
