@@ -1,144 +1,115 @@
-    const db = firebase.firestore();
-    const auth = firebase.auth();
-    const modal = document.getElementById('dashboardModal');
+const API_BASE = 'api/';
+
+// --- INIT PHARMACY DATA ---
+const role = localStorage.getItem('userRole');
+if(role !== 'pharmacy') { window.location.href = 'index.html'; }
+
+const name = localStorage.getItem('userName') || 'Pharmacy Staff';
+const storedEmail = localStorage.getItem('userEmail');
+const storedUid = localStorage.getItem('userUid');
+
+if (!storedEmail) { window.location.href = 'index.html'; }
+
+const currentUserData = { name: name, role: 'pharmacy', uid: storedEmail, email: storedEmail };
+
+document.getElementById('sideName').innerText = name;
+document.getElementById('welcomeTitle').innerText = "Hello, " + name;
+document.getElementById('currentDate').innerText = new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+
+// --- TAB SWITCHING ---
+function switchMainTab(el, tabName) {
+    document.querySelectorAll('.tab-item, .nav-item').forEach(t => t.classList.remove('active'));
+    if(el) el.classList.add('active');
+    
+    const contentArea = document.getElementById('tabContentArea');
+
+    if (tabName === 'home') {
+        if(window.feedInterval) clearInterval(window.feedInterval);
+        contentArea.innerHTML = `
+        <div class="action-section">
+            <div class="section-title">Quick Actions</div>
+            <div class="quick-actions">
+                <div class="action-card" onclick="openPatientSearch()"><i class="fas fa-search"></i><h4>Search Patient</h4><p>View Prescriptions</p></div>
+            </div>
+        </div>`;
+    } else if (tabName === 'community') {
+        loadCommunityFeed(contentArea);
+    }
+}
+
+// --- PATIENT SEARCH ---
+function openPatientSearch() {
     const modalContent = document.getElementById('modalContent');
+    modalContent.innerHTML = `
+        <h2 style="text-align:center;">Patient Lookup</h2>
+        <div class="modern-search-bar"><i class="fas fa-search search-icon"></i>
+        <input type="text" id="sInput" class="search-input-field" placeholder="Enter Patient Email..."><button class="search-btn-modern" onclick="performSearch()">Search</button></div>
+        <div id="searchResults" style="max-height:400px;overflow-y:auto"></div>`;
+    document.getElementById('dashboardModal').classList.add('active');
+}
 
-    // --- INIT PHARMACY DATA ---
-    const role = localStorage.getItem('userRole');
-    if(role !== 'pharmacy') { window.location.href = 'index.html'; } // Security Check
+function performSearch() {
+    const email = document.getElementById('sInput').value.trim();
+    const div = document.getElementById('searchResults');
+    if(!email) { showToast("Enter email"); return; }
+    
+    div.innerHTML = 'Searching...';
 
-    const name = localStorage.getItem('userName') || 'Pharmacy Staff';
-    let storedEmail = localStorage.getItem('userEmail');
-    let stableId = storedEmail ? storedEmail.replace(/[.#$[\]]/g, '_') : localStorage.getItem('userUid');
+    // 1. Search User
+    fetch(`${API_BASE}users.php?action=search&email=${email}`)
+    .then(res => res.json())
+    .then(data => {
+        div.innerHTML = '';
+        if(data.length === 0) { div.innerHTML = 'No patient found.'; return; }
 
-    const currentUserData = { name: name, role: 'pharmacy', uid: stableId, email: storedEmail };
-
-    document.getElementById('sideName').innerText = name;
-    document.getElementById('welcomeTitle').innerText = "Hello, " + name;
-    document.getElementById('currentDate').innerText = new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
-
-    // --- TAB SWITCHING ---
-    function switchMainTab(el, tabName) {
-        document.querySelectorAll('.tab-item, .nav-item').forEach(t => t.classList.remove('active'));
-        if(el) el.classList.add('active');
-        
-        const allNavs = document.querySelectorAll('.nav-item');
-        if(tabName === 'home') allNavs[0].classList.add('active');
-        if(tabName === 'community') allNavs[1].classList.add('active');
-
-        const contentArea = document.getElementById('tabContentArea');
-
-        if (tabName === 'home') {
-            contentArea.innerHTML = `
-            <div class="action-section">
-                <div class="section-title">Quick Actions</div>
-                <div class="quick-actions">
-                    <div class="action-card" onclick="openPatientSearch()"><i class="fas fa-search"></i><h4>Search Patient</h4><p>View Prescriptions</p></div>
-                </div>
-            </div>`;
-        } else if (tabName === 'community') {
-            loadCommunityFeed(contentArea);
-        }
-    }
-
-    // --- PHARMACY FUNCTIONS ---
-    function openPatientSearch() {
-        modalContent.innerHTML = `
-            <h2 style="text-align:center;">Patient Lookup</h2>
-            <div class="modern-search-bar"><i class="fas fa-search search-icon"></i>
-            <input type="text" id="sInput" class="search-input-field" placeholder="Enter Patient Email..."><button class="search-btn-modern" onclick="performSearch()">Search</button></div>
-            <div id="searchResults" style="max-height:400px;overflow-y:auto"></div>`;
-        modal.classList.add('active');
-    }
-
-    function performSearch() {
-        const email = document.getElementById('sInput').value.trim();
-        const div = document.getElementById('searchResults');
-        if(!email) { showToast("Enter email"); return; }
-        
-        div.innerHTML = '<div style="text-align:center; padding:20px;">Searching patient...</div>';
-
-        // 1. Find the User by Email
-        db.collection('users').where('email', '==', email).get().then(userSnap => {
-            div.innerHTML = '';
+        data.forEach(user => {
+            div.innerHTML += `
+                <div style="background:white; border:1px solid #E5E7EB; border-radius:12px; overflow:hidden; margin-bottom:15px;">
+                    <div style="padding:15px; background:#F9FAFB; border-bottom:1px solid #E5E7EB; display:flex; align-items:center; gap:10px;">
+                        <div style="width:40px; height:40px; background:#E5E7EB; border-radius:50%; display:flex; align-items:center; justify-content:center;"><i class="fas fa-user"></i></div>
+                        <div><strong>${user.name}</strong><br><small>ID: ${user.uid}</small></div>
+                    </div>
+                    <div id="records-${user.uid}" style="padding:15px;">Loading Rx...</div>
+                </div>`;
             
-            if(userSnap.empty) { 
-                div.innerHTML = '<p style="text-align:center; color:#EF4444;">No patient found.</p>'; 
-                return; 
+            // 2. Load Prescriptions
+            loadPrescriptions(user.uid);
+        });
+    });
+}
+
+function loadPrescriptions(patientId) {
+    const safeId = patientId; // IDs are strings in PHP version
+    const div = document.getElementById(`records-${safeId}`);
+    
+    fetch(`${API_BASE}reports.php?action=get_prescriptions&patient_id=${patientId}`)
+    .then(r => r.json())
+    .then(reports => {
+        div.innerHTML = '';
+        if(reports.length === 0) { div.innerHTML = '<small>No prescriptions.</small>'; return; }
+
+        reports.forEach(r => {
+            let viewAction = '';
+            if(r.is_manual == 1) {
+                // Manual Text
+                const safeContent = (r.content||'').replace(/`/g, "'").replace(/\$/g, "");
+                viewAction = `openDocViewer('manual', \`${safeContent}\`, 'Prescription: Dr. ${r.doctor_name}')`;
+            } else {
+                // File
+                viewAction = `openDocViewer('file', '${r.file_path}', 'Prescription Doc')`;
             }
 
-            userSnap.forEach(userDoc => {
-                const userData = userDoc.data();
-                const patientId = userDoc.id;
-
-                // Feature C: Show ONLY Name and limited info
-                div.innerHTML += `
-                    <div style="background:white; border:1px solid #E5E7EB; border-radius:12px; overflow:hidden; margin-bottom:15px;">
-                        <div style="padding:15px; background:#F9FAFB; border-bottom:1px solid #E5E7EB; display:flex; align-items:center; gap:10px;">
-                            <div style="width:40px; height:40px; background:#E5E7EB; border-radius:50%; display:flex; align-items:center; justify-content:center; color:#6B7280;">
-                                <i class="fas fa-user"></i>
-                            </div>
-                            <div>
-                                <strong>${userData.name}</strong>
-                                <div style="font-size:0.8rem; color:var(--gray);">Customer ID: ${patientId.substring(0,8)}...</div>
-                            </div>
-                        </div>
-                        <div id="records-${patientId}" style="padding:15px;">
-                            Loading prescriptions...
-                        </div>
-                    </div>`;
-
-                // 2. Fetch ONLY Prescriptions
-                db.collection('reports')
-                    .where('patientId', '==', patientId)
-                    .where('reportType', '==', 'Prescription') // Strict Filter
-                    .orderBy('timestamp', 'desc')
-                    .get()
-                    .then(reportSnap => {
-                        const recordDiv = document.getElementById(`records-${patientId}`);
-                        recordDiv.innerHTML = '';
-
-                        if(reportSnap.empty) {
-                            recordDiv.innerHTML = '<small style="color:#6B7280; font-style:italic;">No prescriptions found.</small>';
-                        } else {
-                            // Inside performSearch -> reportSnap.forEach...
-reportSnap.forEach(repDoc => {
-    const r = repDoc.data();
-    const date = r.timestamp ? new Date(r.timestamp.toDate()).toLocaleDateString() : 'N/A';
-    
-    let viewAction = '';
-    
-    // UPDATED LOGIC
-    if(r.isManual) {
-        const safeContent = r.content.replace(/`/g, "'").replace(/\$/g, "");
-        // Calls the new modal function
-        viewAction = `openDocViewer('manual', \`${safeContent}\`, 'Prescription: Dr. ${r.doctorName}')`;
-    } else {
-        // Calls the new modal function
-        viewAction = `openDocViewer('file', '${r.fileData}', 'Prescription Document')`;
-    }
-
-    recordDiv.innerHTML += `
-        <div class="list-item" style="padding:10px;">
-            <div>
-                <strong>Prescribed by Dr. ${r.doctorName}</strong><br>
-                <small style="color:#6B7280">${date}</small>
-            </div>
-            <button class="list-btn btn-view" onclick="${viewAction}">View Rx</button>
-        </div>
-    `;
-});
-                        }
-                    })
-                    .catch(err => {
-                        console.log(err);
-                        document.getElementById(`records-${patientId}`).innerHTML = '<small>No prescriptions found (or index missing).</small>';
-                    });
-            });
+            div.innerHTML += `
+                <div class="list-item" style="padding:10px; border-bottom:1px solid #eee;">
+                    <div><strong>Dr. ${r.doctor_name}</strong><br><small>${new Date(r.timestamp).toLocaleDateString()}</small></div>
+                    <button class="list-btn btn-view" onclick="${viewAction}">View Rx</button>
+                </div>`;
         });
-    }
+    });
+}
 
-    function openDocViewer(type, content, title) {
+// --- VIEWER ---
+function openDocViewer(type, content, title) {
     const viewerModal = document.getElementById('documentViewerModal');
     const viewerContent = document.getElementById('docViewerContent');
     
@@ -148,43 +119,76 @@ reportSnap.forEach(repDoc => {
             <h2 style="margin-bottom: 15px; border-bottom: 2px solid #eee; padding-bottom: 10px;">${title}</h2>
             <div style="background: #F9FAFB; padding: 25px; border-radius: 12px; border: 1px solid #E5E7EB; overflow-y: auto; flex: 1;">
                 <pre style="white-space: pre-wrap; font-family: 'Poppins', sans-serif; font-size: 1.1rem; color: #333;">${content}</pre>
-            </div>`;
+            </div>
+            <div style="text-align:right; margin-top:10px;"><button class="list-btn btn-book" onclick="window.print()">Print</button></div>`;
     } else {
-        html = `
-            <h3 style="margin-bottom: 10px;">${title}</h3>
-            <iframe src="${content}" style="width: 100%; flex: 1; border: none; background: #eee;"></iframe>`;
+        html = `<h3 style="margin-bottom: 10px;">${title}</h3><iframe src="${content}" style="width: 100%; height: 80vh; border: none; background: #eee;"></iframe>`;
     }
     
     viewerContent.innerHTML = html;
     viewerModal.classList.add('active');
 }
 
-function closeDocViewer() {
-    document.getElementById('documentViewerModal').classList.remove('active');
+// --- COMMUNITY FEED (Auto-Refresh) ---
+function loadCommunityFeed(container) {
+    container.innerHTML = `
+        <div class="create-post-card">
+            <textarea id="newPostText" class="cp-input-area" style="width:100%; border:none; outline:none;" placeholder="Share a health update..."></textarea>
+            <div style="text-align:right; margin-top:10px;">
+                <button class="list-btn btn-book" onclick="publishPost()">Post</button>
+            </div>
+        </div>
+        <div id="feedStream">Loading...</div>
+    `;
+    fetchPosts();
+    window.feedInterval = setInterval(fetchPosts, 5000);
 }
 
-    // Add this helper for Pharmacy to view manual text prescriptions
-    function viewManualRx(content, docName) {
-        const win = window.open('', '_blank', 'width=600,height=600');
-        win.document.write(`
-            <html><head><title>Prescription</title>
-            <style>body{font-family:sans-serif; padding:40px;}</style></head>
-            <body>
-                <h2 style="border-bottom:2px solid black; padding-bottom:10px;">Dr. ${docName}</h2>
-                <pre style="white-space: pre-wrap; font-family: sans-serif; font-size:1.1rem; line-height:1.6; background:#f9f9f9; padding:20px;">${content}</pre>
-                <div style="margin-top:50px; text-align:right;">Signed</div>
-                <script>window.print();<\/script>
-            </body></html>
-        `);
-    }
+function fetchPosts() {
+    const feed = document.getElementById('feedStream');
+    if(!feed) return; 
+    fetch(`${API_BASE}community.php?action=get`).then(r=>r.json()).then(data => {
+        feed.innerHTML = '';
+        data.forEach(p => {
+            const isLiked = p.likes && p.likes.includes(currentUserData.uid);
+            let commentsHtml = '';
+            if(p.comments) p.comments.forEach(c => {
+                commentsHtml += `<div style="margin-bottom:8px; font-size:0.9rem; border-bottom:1px solid #eee;"><strong>${c.author}</strong>: ${c.text}</div>`;
+            });
 
-    // Helper for pharmacy view (ensure this exists in your shared utils or paste it here too)
-    function viewFile(data) { 
-        const win = window.open(); 
-        win.document.write(`<iframe src="${data}" style="width:100%;height:100%;border:none;"></iframe>`); 
-    }
+            feed.innerHTML += `
+                <div class="post-card">
+                    <div class="post-header"><strong>${p.authorName}</strong> <span class="role-badge role-${p.authorRole}">${p.authorRole}</span></div>
+                    <p>${p.content}</p>
+                    <div class="interaction-bar">
+                        <button class="action-btn ${isLiked?'liked':''}" onclick="toggleLike('${p.id}')"> <i class="${isLiked ? 'fas' : 'far'} fa-heart"></i> ${p.likes ? p.likes.length : 0}</button>
+                        <button class="action-btn" onclick="document.getElementById('c-sec-${p.id}').classList.toggle('open')"> <i class="far fa-comment"></i> ${p.comments ? p.comments.length : 0}</button>
+                    </div>
+                    <div class="comments-section" id="c-sec-${p.id}">
+                        <div class="comment-input-box">
+                            <input type="text" id="i-${p.id}" placeholder="Write a comment...">
+                            <button class="list-btn btn-view" onclick="sendComment('${p.id}')">Send</button>
+                        </div>
+                        <div style="max-height:200px; overflow-y:auto;">${commentsHtml}</div>
+                    </div>
+                </div>`;
+        });
+    });
+}
 
-    // --- SHARED UTILS ---
-    function closeModal() { modal.classList.remove('active'); }
-    function showToast(msg) { const b = document.getElementById('toast-box'); document.getElementById('toast-msg').innerText = msg; b.classList.add('show'); setTimeout(()=>b.classList.remove('show'),3000); }
-    function logout() { localStorage.clear(); window.location.href = 'index.html'; }
+function publishPost() {
+    const txt = document.getElementById('newPostText').value;
+    if(txt) {
+        const fd = new FormData(); fd.append('action', 'post'); fd.append('content', txt);
+        fd.append('authorName', currentUserData.name); fd.append('authorRole', 'pharmacy'); fd.append('authorId', currentUserData.uid);
+        fetch(`${API_BASE}community.php`, { method: 'POST', body: fd }).then(() => { document.getElementById('newPostText').value = ''; fetchPosts(); });
+    }
+}
+function toggleLike(pid) { const fd = new FormData(); fd.append('action', 'like'); fd.append('id', pid); fd.append('uid', currentUserData.uid); fetch(`${API_BASE}community.php`, { method: 'POST', body: fd }).then(fetchPosts); }
+function sendComment(pid) { const t = document.getElementById('i-'+pid).value; if(t) { const fd = new FormData(); fd.append('action', 'comment'); fd.append('id', pid); fd.append('text', t); fd.append('author', currentUserData.name); fetch(`${API_BASE}community.php`, { method: 'POST', body: fd }).then(fetchPosts); } }
+
+// --- UTILS ---
+function closeDocViewer() { document.getElementById('documentViewerModal').classList.remove('active'); }
+function closeModal() { document.getElementById('dashboardModal').classList.remove('active'); }
+function showToast(msg) { const b = document.getElementById('toast-box'); if(b){ document.getElementById('toast-msg').innerText = msg; b.classList.add('show'); setTimeout(()=>b.classList.remove('show'),3000); }}
+function logout() { localStorage.clear(); window.location.href = 'index.html'; }
