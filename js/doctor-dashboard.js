@@ -180,38 +180,29 @@
         modal.classList.add('active');
     }
 
-    // [REPLACE] The entire performSearch function
-    function performSearch() {
-        const email = document.getElementById('sInput').value.trim();
-        const div = document.getElementById('searchResults');
-        if(!email) { showToast("Enter email"); return; }
-        div.innerHTML = 'Searching...';
-
-        db.collection('users').where('email', '==', email).get().then(snap => {
-            div.innerHTML = '';
-            if(snap.empty) { div.innerHTML = '<p style="text-align:center">No patient found.</p>'; return; }
-            
-            // [Fix B] Prevent Duplicates using a Set
-            const seenEmails = new Set();
-            
-            snap.forEach(doc => {
-                const d = doc.data();
-                // If we have already displayed this email in this search result, skip it
-                if(seenEmails.has(d.email)) return;
-                
-                seenEmails.add(d.email);
-                
-                div.innerHTML += `
-<div class="list-item">
-    <div>
-        <strong>${d.name}</strong>
-        <br><small>${d.email}</small>
-    </div>
-    <button class="list-btn btn-view" onclick="goToPatientPage('${doc.id}', '${d.name}')">View Profile</button>
-</div>`;
-            });
+    // --- REPLACE THE SEARCH LOGIC inside performSearch() ---
+function performSearch() {
+    const email = document.getElementById('sInput').value.trim();
+    const resDiv = document.getElementById('searchResults');
+    
+    // Call PHP endpoint
+    fetch(`api/search_patient.php?email=${email}`)
+    .then(res => res.json())
+    .then(data => {
+        resDiv.innerHTML = '';
+        if(data.length === 0) {
+            resDiv.innerHTML = 'No patient found.';
+            return;
+        }
+        
+        data.forEach(p => {
+            resDiv.innerHTML += `
+                <div class="list-item" onclick="window.location.href='doctor-patient-view.html?pid=${p.uid}&name=${p.name}'">
+                   <strong>${p.name}</strong> (${p.email})
+                </div>`;
         });
-    }
+    });
+}
 
     function goToPatientPage(pid, pname) {
     // Encodes the name to ensure special characters don't break the URL
