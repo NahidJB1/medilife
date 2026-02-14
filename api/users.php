@@ -84,31 +84,30 @@ elseif ($action == 'update_profile') {
         }
     }
 
-    // B. Capture All Possible Fields (from both Patient and Doctor forms)
-    // We use null coalescing (??) to handle missing fields safely
     $name = $_POST['name'] ?? null;
     $phone = $_POST['phone'] ?? null;
     $address = $_POST['address'] ?? null;
     
-    // Doctor Specific
+    // Doctor
     $specialist = $_POST['specialist'] ?? null;
     $degrees = $_POST['degrees'] ?? null;
     $time = $_POST['time'] ?? null;
     
-    // Patient Specific (Map JS keys to DB columns)
+    // Patient
     $gender = $_POST['gender'] ?? null;
     $age = $_POST['age'] ?? null;
-    $blood_group = $_POST['bloodGroup'] ?? null; // JS sends 'bloodGroup', mapped to DB 'blood_group'
+    $blood_group = $_POST['bloodGroup'] ?? null; 
     $height = $_POST['height'] ?? null;
     $weight = $_POST['weight'] ?? null;
-    $em_name = $_POST['emName'] ?? null;         // JS sends 'emName'
-    $em_phone = $_POST['emPhone'] ?? null;       // JS sends 'emPhone'
+    $em_name = $_POST['emName'] ?? null;
+    $em_phone = $_POST['emPhone'] ?? null;
+    // [NEW] Missing Patient Fields
+    $em_relation = $_POST['emRelation'] ?? null;
+    $em_email = $_POST['emEmail'] ?? null;
+    $reg_num = $_POST['regNum'] ?? null;
 
-    // C. Update Database
-    // IMPORTANT: This assumes your 'users' table has these columns. 
-    // If a column is missing in your DB, this query will fail. 
-    // Ensure you have added these columns to your MySQL table.
-    $sql = "UPDATE users SET 
+
+   $sql = "UPDATE users SET 
             name = COALESCE(?, name),
             phone = COALESCE(?, phone),
             address = COALESCE(?, address),
@@ -121,14 +120,18 @@ elseif ($action == 'update_profile') {
             height = COALESCE(?, height),
             weight = COALESCE(?, weight),
             em_name = COALESCE(?, em_name),
-            em_phone = COALESCE(?, em_phone)
+            em_phone = COALESCE(?, em_phone),
+            em_relation = COALESCE(?, em_relation),
+            em_email = COALESCE(?, em_email),
+            reg_num = COALESCE(?, reg_num)
             WHERE uid = ?";
 
     $stmt = $conn->prepare($sql);
     // 's' repeats 13 times for inputs + 1 time for uid = 14 strings
-    $stmt->bind_param("ssssssssssssss", 
+    $stmt->bind_param("sssssssssssssssss", 
         $name, $phone, $address, $specialist, $degrees, $time, 
         $gender, $age, $blood_group, $height, $weight, $em_name, $em_phone, 
+        $em_relation, $em_email, $reg_num,
         $uid
     );
 
