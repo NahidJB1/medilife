@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Doctor Dashboard | MEDeLIFE</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="css/patient-dashboard.css">
+</head>
+<body>
+
+    <aside class="sidebar" id="sidebar">
+        <div class="brand" onclick="window.location.href='index.html'">
+    <svg width="30" height="30" viewBox="0 0 100 100" style="margin-right: 10px;">
+        <rect x="35" y="10" width="30" height="80" rx="5" fill="#EF4444" />
+        <rect x="10" y="35" width="80" height="30" rx="5" fill="#EF4444" />
+    </svg>
+    <div style="font-family: 'Poppins', sans-serif; font-size: 20px; font-weight: 700; line-height: 1;">
+        <span style="color: #EF4444;">MED</span><span style="color: #000;">e</span><span style="color: #22C55E;">LIFE</span>
+    </div>
+</div>
+
+        <div class="nav-items">
+            <div class="nav-item active" onclick="switchMainTab(this, 'home')"><i class="fas fa-home"></i> Home</div>
+            <div class="nav-item" onclick="window.location.href='community.html'"><i class="fas fa-users"></i> Community</div>
+        </div>
+
+        <div class="user-mini-profile" onclick="window.location.href='profile.html'" style="cursor: pointer;">
+    <img id="sideAvatar" src="https://via.placeholder.com/150" class="mini-avatar">
+    <div>
+        <h4 id="sideName" style="font-size: 0.9rem;">Doctor</h4>
+        <p id="sideRole" style="font-size: 0.75rem; color: var(--gray);">Medical Professional</p>
+    </div>
+</div>
+    </aside>
+
+    <main class="main-content">
+        <header>
+            <div class="welcome-text">
+                <h1 id="welcomeTitle">Welcome Back!</h1>
+                <p id="currentDate">Loading date...</p>
+            </div>
+            <div class="header-actions">
+                <button class="btn-logout" onclick="logout()"><i class="fas fa-sign-out-alt"></i> Logout</button>
+            </div>
+        </header>
+
+        <div class="dashboard-tabs" id="mainTabs">
+            <div class="tab-item active" onclick="switchMainTab(this, 'home')"><i class="fas fa-home"></i> Home</div>
+            <div class="tab-item" onclick="switchMainTab(this, 'community')"><i class="fas fa-users"></i> Community</div>
+        </div>
+
+        <div id="tabContentArea">
+            <div class="action-section">
+                <div class="section-title">Quick Actions</div>
+                <div class="quick-actions" id="actionGrid">
+                    <div class="action-card" onclick="openAppointmentList('pending')"><i class="fas fa-calendar-check" style="color:#F59E0B"></i><h4>Requests</h4><p>Pending Approvals</p></div>
+                    <div class="action-card" onclick="openAppointmentList('accepted')"><i class="fas fa-clipboard-list"></i><h4>View Bookings</h4><p>Confirmed Patients</p></div>
+                    <div class="action-card" onclick="openPatientSearch()"><i class="fas fa-user-injured"></i><h4>Find Patient</h4><p>View History & Prescribe</p></div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <div class="modal-overlay" id="dashboardModal">
+        <div class="dashboard-modal">
+            <span class="close-modal" onclick="closeModal()">&times;</span>
+            <div id="modalContent"></div>
+        </div>
+    </div>
+
+    <div id="toast-box"><i class="fas fa-info-circle"></i> <span id="toast-msg">Notification</span></div>
+
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore-compat.js"></script>
+    <script src="js/firebase-init.js"></script>
+    <script src="js/patient-dashboard.js"></script>
+
+    <div class="modal-overlay" id="documentViewerModal" style="z-index: 3000;">
+    <div class="dashboard-modal" style="width: 90%; height: 85%; max-width: 900px; display: flex; flex-direction: column;">
+        <span class="close-modal" onclick="closeDocViewer()">&times;</span>
+        <div id="docViewerContent" style="flex: 1; display: flex; flex-direction: column; overflow-y: auto; padding-right: 5px;">
+            </div>
+    </div>
+</div>
+</body>
+</html>
