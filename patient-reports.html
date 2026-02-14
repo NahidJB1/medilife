@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Reports | MEDeLIFE</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+  <link rel="stylesheet" href="css/patient-reports.css">
+
+</head>
+<body>
+
+    <aside class="sidebar" id="sidebar">
+        <div class="brand" onclick="window.location.href='index.html'">
+            <svg width="30" height="30" viewBox="0 0 100 100" style="margin-right: 10px;">
+                <rect x="35" y="10" width="30" height="80" rx="5" fill="#EF4444" />
+                <rect x="10" y="35" width="80" height="30" rx="5" fill="#EF4444" />
+            </svg>
+            <div style="font-family: 'Poppins', sans-serif; font-size: 20px; font-weight: 700; line-height: 1;">
+                <span style="color: #EF4444;">MED</span><span style="color: #000;">e</span><span style="color: #22C55E;">LIFE</span>
+            </div>
+        </div>
+
+        <div class="nav-items">
+            <div class="nav-item" onclick="window.location.href='patient-dashboard.html'"><i class="fas fa-home"></i> Home</div>
+            <div class="nav-item" onclick="window.location.href='community.html'"><i class="fas fa-users"></i> Community</div>
+        </div>
+
+        <div class="user-mini-profile" onclick="window.location.href='profile.html'">
+            <img id="sideAvatar" src="https://via.placeholder.com/150" class="mini-avatar">
+            <div>
+                <h4 id="sideName" style="font-size: 0.9rem;">Patient</h4>
+                <p id="sideRole" style="font-size: 0.75rem; color: var(--gray);">Personal Account</p>
+            </div>
+        </div>
+    </aside>
+
+    <main class="main-content">
+        <header>
+            <div class="page-title">
+                <button onclick="window.location.href='patient-dashboard.html'" style="background:none; border:none; color:var(--gray); cursor:pointer; margin-bottom:10px;"><i class="fas fa-arrow-left"></i> Back to Dashboard</button>
+                <h1>My Medical Records</h1>
+                <p>Manage reports from your doctor and your own uploads.</p>
+            </div>
+        </header>
+
+        <div class="report-nav">
+            <div class="report-tab active" onclick="switchReportTab('doctor')"><i class="fas fa-user-md"></i> From Doctor</div>
+            <div class="report-tab" onclick="switchReportTab('patient')"><i class="fas fa-file-upload"></i> My Uploads</div>
+        </div>
+
+        <div id="doctorDocs" class="tab-content">
+            <div class="doc-category-title">Prescriptions</div>
+            <div id="list-prescriptions" class="doc-list"><p class="empty-state">Loading...</p></div>
+
+            <div class="doc-category-title" style="margin-top: 40px;">Medical Reports & Lab Results</div>
+            <div id="list-doc-reports" class="doc-list"><p class="empty-state">Loading...</p></div>
+        </div>
+
+        <div id="patientDocs" class="tab-content" style="display: none;">
+            <div class="doc-category-title">My Uploaded Files</div>
+            <div id="list-my-uploads" class="doc-list"><p class="empty-state">Loading...</p></div>
+        </div>
+
+        <div class="modal-overlay" id="documentViewerModal">
+    <div class="dashboard-modal">
+        <span class="close-modal" onclick="closeDocViewer()">&times;</span>
+        <div id="docViewerContent"></div>
+    </div>
+</div>
+
+    </main>
+
+    <div id="toast-box"><i class="fas fa-info-circle"></i> <span id="toast-msg">Notification</span></div>
+
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore-compat.js"></script>
+    <script src="js/firebase-init.js"></script>
+  <script src="js/patient-reports.js"></script>
+
+    <button class="ai-fab" onclick="generateSmartSummary()" title="Generate AI Summary">
+    <i class="fas fa-magic"></i>
+</button>
+
+<div class="ai-modal-overlay" id="aiModal">
+    <div class="ai-card">
+        <span class="close-modal" onclick="document.getElementById('aiModal').classList.remove('active')" 
+              style="position:absolute; top:15px; right:20px; font-size:1.5rem; cursor:pointer;">&times;</span>
+        <h3><i class="fas fa-robot"></i> Smart Summary</h3>
+        <div id="aiSummaryContent" class="ai-content">
+            </div>
+        <button class="list-btn" onclick="document.getElementById('aiModal').classList.remove('active')" 
+                style="background:#F3F4F6; color:#374151; width:100%; margin-top:20px; padding:12px;">Close</button>
+    </div>
+</div>
+</body>
+</html>
