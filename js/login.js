@@ -44,74 +44,7 @@
             }
         }
 
-        function handleRegister(event) {
-            event.preventDefault(); 
-
-            const btn = document.getElementById('btnRegister');
-            const originalText = btn.innerText;
-            const emailInput = document.getElementById('regEmail');
-            const passwordInput = document.getElementById('regPassword');
-            const emailErrorMsg = document.getElementById('emailErrorMsg');
-            
-            // Capture values
-            const nameVal = document.getElementById('regName').value;
-            const roleVal = document.getElementById('regRole').value;
-            const emailVal = emailInput.value;
-
-            btn.disabled = true;
-            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Creating...';
-
-            if (!validateInputs()) {
-                btn.disabled = false;
-                btn.innerText = originalText;
-                return;
-            }
-
-            if (typeof firebase !== 'undefined') {
-                firebase.auth().createUserWithEmailAndPassword(emailVal, passwordInput.value)
-                .then((userCredential) => {
-                    // --- 1. SAVE TO DATABASE (FIRESTORE) ---
-                    const db = firebase.firestore();
-                    return db.collection("users").doc(userCredential.user.uid).set({
-                        name: nameVal,
-                        role: roleVal,
-                        email: emailVal,
-                        createdAt: new Date()
-                    })
-                    .then(() => {
-                        // --- 2. UPDATE LOCAL STORAGE ---
-                        // Only now do we set the local storage for the current session
-                        localStorage.setItem('isLoggedIn', 'true');
-                        localStorage.setItem('userName', nameVal);
-                        localStorage.setItem('userRole', roleVal);
-
-                        // --- 3. DEMO BACKUP (For local testing without Firebase) ---
-                        // We save a "fake database" entry in localStorage just in case
-                        localStorage.setItem('db_user_' + emailVal, JSON.stringify({ role: roleVal, name: nameVal }));
-
-                        showSuccessAnimation();
-                    });
-                })
-                .catch((error) => {
-                    btn.disabled = false;
-                    btn.innerText = originalText;
-                    if (error.code === 'auth/email-already-in-use') {
-                        emailInput.classList.add('error');
-                        emailErrorMsg.innerText = "This email is already registered.";
-                        emailErrorMsg.style.display = "block";
-                    } else {
-                        alert("Error: " + error.message);
-                    }
-                });
-            } else {
-                // FALLBACK IF FIREBASE NOT LOADED
-                // We simulate saving to a DB by using a specific key for this email
-                localStorage.setItem('db_user_' + emailVal, JSON.stringify({ role: roleVal, name: nameVal }));
-                
-                setTimeout(() => { showSuccessAnimation(); }, 1500);
-            }
-        }
-
+        
         function showSuccessAnimation() {
             // Hide the form
             document.getElementById('registerForm').classList.add('hidden');
@@ -162,55 +95,68 @@
         }
         function clearError(inputElement) { inputElement.style.borderColor = "transparent"; document.getElementById('emailErrorMsg').style.display = 'none'; }
         
-        function handleLogin(event) {
-            event.preventDefault();
-            const btn = document.getElementById('btnSignIn');
-            const originalText = btn.innerText;
-            btn.disabled = true;
-            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Signing In...';
+        // --- REPLACE handleRegister function ---
+async function handleRegister(event) {
+    event.preventDefault();
+    const btn = document.getElementById('btnRegister');
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Creating...';
 
-            const email = document.getElementById('loginEmail').value;
-            const password = document.getElementById('loginPassword').value;
+    const formData = new FormData();
+    formData.append('action', 'register');
+    formData.append('name', document.getElementById('regName').value);
+    formData.append('email', document.getElementById('regEmail').value);
+    formData.append('password', document.getElementById('regPassword').value);
+    formData.append('role', document.getElementById('regRole').value);
 
-            if (typeof firebase !== 'undefined') {
-                firebase.auth().signInWithEmailAndPassword(email, password)
-                .then((userCredential) => {
-                    const uid = userCredential.user.uid;
-                    const db = firebase.firestore();
+    try {
+        const response = await fetch('api/auth.php', { method: 'POST', body: formData });
+        const result = await response.json();
 
-                    // --- FETCH ROLE AND REDIRECT ---
-                    db.collection("users").doc(uid).get().then((doc) => {
-                        if (doc.exists) {
-                            const userData = doc.data();
-                            
-                            // Save Session Data
-                            localStorage.setItem('isLoggedIn', 'true');
-                            localStorage.setItem('userName', userData.name);
-                            localStorage.setItem('userRole', userData.role); 
-                            localStorage.setItem('userEmail', userData.email || email); // Ensure email is saved
-                            
-                            // --- NEW: REDIRECT BASED ON ROLE ---
-                            redirectToDashboard(userData.role);
-                        } else {
-                            checkLocalBackupAndRedirect(email);
-                        }
-                    }).catch((error) => {
-                        console.error("Error getting document:", error);
-                        checkLocalBackupAndRedirect(email);
-                    });
-                })
-                .catch((error) => {
-                    btn.disabled = false;
-                    btn.innerText = originalText;
-                    alert("Login Failed: " + error.message);
-                });
-            } else {
-                // DEMO MODE
-                setTimeout(() => { 
-                    checkLocalBackupAndRedirect(email);
-                }, 1500);
-            }
+        if (result.status === 'success') {
+            showSuccessAnimation();
+        } else {
+            alert(result.message);
         }
+    } catch (error) {
+        console.error('Error:', error);
+    } finally {
+        btn.innerHTML = 'Create Account';
+    }
+}
+
+// --- REPLACE handleLogin function ---
+async function handleLogin(event) {
+    event.preventDefault();
+    const btn = document.getElementById('btnSignIn');
+    btn.innerHTML = 'Signing In...';
+
+    const formData = new FormData();
+    formData.append('action', 'login');
+    formData.append('email', document.getElementById('loginEmail').value);
+    formData.append('password', document.getElementById('loginPassword').value);
+
+    try {
+        const response = await fetch('api/auth.php', { method: 'POST', body: formData });
+        const result = await response.json();
+
+        if (result.status === 'success') {
+            const u = result.user;
+            localStorage.setItem('isLoggedIn', 'true');
+            localStorage.setItem('userUid', u.uid); // Storing Email as UID
+            localStorage.setItem('userName', u.name);
+            localStorage.setItem('userRole', u.role);
+            localStorage.setItem('userEmail', u.uid);
+
+            redirectToDashboard(u.role);
+        } else {
+            alert(result.message);
+        }
+    } catch (error) {
+        console.error(error);
+    } finally {
+        btn.innerHTML = 'Sign In';
+    }
+}
 
         function checkLocalBackupAndRedirect(email) {
             const savedData = localStorage.getItem('db_user_' + email);
