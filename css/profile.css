@@ -73,3 +73,29 @@
             .time-controls-row { flex-direction: column; align-items: flex-start; gap: 15px; }
             .btn-add-time { width: 100%; margin-top: 5px; }
         }
+
+
+        
+/* Add these to your existing profile.css */
+
+.form-input, .btn-save, .day-circle, .schedule-tag {
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.schedule-tag {
+    animation: slideIn 0.3s ease-out;
+}
+
+@keyframes slideIn {
+    from { opacity: 0; transform: translateX(-10px); }
+    to { opacity: 1; transform: translateX(0); }
+}
+
+/* Enhanced Hover Effects */
+.btn-save:active {
+    transform: scale(0.95);
+}
+
+.day-circle:active {
+    transform: scale(0.9);
+}
