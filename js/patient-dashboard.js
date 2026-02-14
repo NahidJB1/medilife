@@ -28,6 +28,7 @@ fetch(`${API_BASE}users.php`, { method: 'POST', body: fd });
 
 document.getElementById('sideName').innerText = name;
 document.getElementById('welcomeTitle').innerText = "Hello, " + name;
+document.getElementById('sideRole').innerText = "Patient Account"; // Updates the "Medical Professional" text
 document.getElementById('currentDate').innerText = new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
 
 // --- TAB SWITCHING ---
