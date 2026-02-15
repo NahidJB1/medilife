@@ -221,12 +221,15 @@ function switchTab(tab) {
 }
 
 // --- HISTORY LIST LOADER (PHP VERSION) ---
+// --- LOAD HISTORY (Corrected for PHP API) ---
 function loadPatientHistory(typeFilter, containerId, fallbackDrDetails, uploadedByFilter) {
     const container = document.getElementById(containerId);
     container.innerHTML = '<div style="padding:20px; text-align:center; color:var(--gray);"><i class="fas fa-spinner fa-spin"></i> Fetching records...</div>';
     
-    // Build URL for PHP API
+    // Construct URL based on filters
     let url = `${API_BASE}reports.php?action=get&patient_id=${currentViewingPatient.id}`;
+    
+    // PHP expects 'type' or 'uploader' params
     if (typeFilter !== 'All') url += `&type=${typeFilter}`;
     if (uploadedByFilter) url += `&uploader=${uploadedByFilter}`;
 
@@ -240,10 +243,11 @@ function loadPatientHistory(typeFilter, containerId, fallbackDrDetails, uploaded
         }
         
         data.forEach(d => {
-            const date = d.created_at ? new Date(d.created_at).toLocaleDateString() : 'N/A';
-            const displayTitle = d.category || d.type;
+            // Handle Dates (PHP sends 'formatted_date' or 'timestamp')
+            const date = d.formatted_date || (d.timestamp ? new Date(d.timestamp).toLocaleDateString() : 'N/A');
+            const displayTitle = d.doc_category || d.report_type;
             const docName = d.doctor_name || fallbackDrDetails.name || 'Professional';
-            const icon = d.type === 'Prescription' ? 'fa-file-prescription' : 'fa-file-medical-alt';
+            const icon = d.report_type === 'Prescription' ? 'fa-file-prescription' : 'fa-file-medical-alt';
 
             // Parse stored JSON doctor details if available
             let storedDocDetails = fallbackDrDetails;
@@ -252,12 +256,11 @@ function loadPatientHistory(typeFilter, containerId, fallbackDrDetails, uploaded
             let viewAction = '';
             if(d.is_manual == 1) {
                 // Manual Prescription
-                const safeContent = (d.content || "").replace(/`/g, "'").replace(/\$/g, "").replace(/\\/g, "\\\\");
+                const safeContent = (d.content || "").replace(/`/g, "'").replace(/\$/g, "").replace(/\\/g, "\\\\").replace(/"/g, '&quot;');
                 const drDetailsStr = JSON.stringify(storedDocDetails).replace(/"/g, '&quot;');
-                viewAction = `openDocViewer('manual', \`${safeContent}\`, '${displayTitle}', '${docName}', '${currentViewingPatient.name}', '${date}', ${drDetailsStr})`;
+                viewAction = `openDocViewer('manual', \`${safeContent}\`, '${displayTitle}', '${docName}', '${currentViewingPatient.name}', '${date}', \`${drDetailsStr}\`)`;
             } else {
                 // File Upload
-                // Path assumed to be relative to the HTML file or absolute
                 const filePath = API_BASE + d.file_path; 
                 viewAction = `openDocViewer('file', '${filePath}', '${displayTitle}')`;
             }
@@ -278,6 +281,7 @@ function loadPatientHistory(typeFilter, containerId, fallbackDrDetails, uploaded
         });
     })
     .catch(err => {
+        console.error(err);
         container.innerHTML = "Error loading records.";
     });
 }
@@ -354,36 +358,42 @@ function triggerUpload(type) {
     document.getElementById('docUploadInput').click();
 }
 
+// --- UPLOAD FUNCTION (Corrected for PHP API) ---
 function handleDocUpload(input) {
-    const type = document.getElementById('uploadType').value; 
-    let specificCategory = type; 
-    if(type === 'Report') {
+    const type = document.getElementById('uploadType').value;
+    let category = type;
+    
+    // If it's a Report, get the specific category from dropdown
+    if (type === 'Report') {
         const selector = document.getElementById('reportCategorySelect');
-        if(selector) specificCategory = selector.value;
+        if(selector) category = selector.value;
     }
 
     if(input.files && input.files[0]) {
         const fd = new FormData();
-        fd.append('action', 'upload_file');
+        fd.append('action', 'upload'); 
         fd.append('file', input.files[0]);
         fd.append('patientId', currentViewingPatient.id);
         fd.append('doctorId', currentUserData.uid);
         fd.append('doctorName', currentUserData.name);
         fd.append('reportType', type);
-        fd.append('category', specificCategory);
-        fd.append('uploadedBy', 'doctor');
+        fd.append('docCategory', category);
+        fd.append('uploadedBy', 'doctor'); 
 
         fetch(`${API_BASE}reports.php`, { method: 'POST', body: fd })
         .then(res => res.json())
         .then(data => {
             if(data.status === 'success') {
-                showToast("File Uploaded");
-                loadPatientProfile(); 
+                showToast("Uploaded Successfully");
+                loadPatientProfile(); // Refresh lists to show new file
             } else {
-                showToast("Upload Failed: " + data.message);
+                showToast("Error: " + (data.message || "Upload Failed"));
             }
         })
-        .catch(err => showToast("Network Error"));
+        .catch(err => {
+            console.error(err);
+            showToast("Network Error during upload");
+        });
     }
 }
 
