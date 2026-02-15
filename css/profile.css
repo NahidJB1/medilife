@@ -99,3 +99,34 @@
 .day-circle:active {
     transform: scale(0.9);
 }
+
+
+/* Edit Button Styling */
+.btn-edit {
+    background: white;
+    color: var(--dark);
+    border: 1px solid #E5E7EB;
+    padding: 10px 20px;
+    border-radius: 8px;
+    font-weight: 500;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    transition: all 0.2s;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+}
+
+.btn-edit:hover {
+    border-color: var(--primary);
+    color: var(--primary);
+    background: #FEF2F2;
+}
+
+/* Visual cue for Disabled Inputs */
+.form-input:disabled {
+    background-color: #F9FAFB; /* Light gray */
+    color: #6B7280; /* Gray text */
+    cursor: default;
+    border-color: transparent; /* Makes it look less like a box */
+}
