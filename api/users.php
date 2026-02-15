@@ -126,9 +126,18 @@ elseif ($action == 'update_profile') {
             reg_num = COALESCE(?, reg_num)
             WHERE uid = ?";
 
+// --- UPDATE STARTS HERE ---
     $stmt = $conn->prepare($sql);
-    // 's' repeats 13 times for inputs + 1 time for uid = 14 strings
+    
+    // Check if the database query failed to prepare (e.g., missing columns)
+    if (!$stmt) {
+        echo json_encode(["status" => "error", "message" => "Database Error: " . $conn->error]);
+        exit;
+    }
+
+    // 's' repeats 17 times (16 inputs + 1 uid)
     $stmt->bind_param("sssssssssssssssss", 
+    // --- UPDATE ENDS HERE ---
         $name, $phone, $address, $specialist, $degrees, $time, 
         $gender, $age, $blood_group, $height, $weight, $em_name, $em_phone, 
         $em_relation, $em_email, $reg_num,
