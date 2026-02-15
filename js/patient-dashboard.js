@@ -172,23 +172,33 @@ function openDoctorBooking(docId) {
     container.innerHTML = '<div style="text-align:center; padding:20px;">Loading Profile...</div>';
     
     fetch(`${API_BASE}users.php?action=get&uid=${docId}`).then(r=>r.json()).then(d => {
-        // B. Profile Image for Booking View
         const imgSrc = d.profile_pic ? d.profile_pic : 'https://via.placeholder.com/150?text=Dr';
+        
+        // Parse the schedule string from DB
+        const scheduleObj = parseDoctorSchedule(d.time); 
+        let availableDaysText = "Available: All Days";
+        if(scheduleObj) {
+            availableDaysText = "Available: " + Object.values(scheduleObj).map(s => s.dayName).join(', ');
+        }
 
         container.innerHTML = `
             <div style="animation:fadeIn 0.4s;">
                 <button onclick="openFindDoctorModal()" style="border:none;background:none;cursor:pointer;margin-bottom:10px; color:var(--gray);">&larr; Back to list</button>
                 
                 <div class="doc-profile-header" style="text-align:center; margin-bottom:20px; border-bottom:1px solid #E5E7EB; padding-bottom:15px;">
-                    <img src="${imgSrc}" alt="Doctor">
-                    <h2 style="font-size:1.4rem;">Dr. ${d.name}</h2>
+                    <img src="${imgSrc}" alt="Doctor"> <h2 style="font-size:1.4rem;">Dr. ${d.name}</h2>
                     <p style="color:var(--primary); font-weight:500;">${d.specialist || 'Specialist'}</p>
-                    <p style="color:var(--gray); font-size:0.85rem; margin-top:5px;"><i class="far fa-clock"></i> ${d.time || '9:00 AM - 5:00 PM'}</p>
+                    
+                    <div style="margin-top:10px; display:flex; flex-direction:column; gap:5px; align-items:center;">
+                        <span class="doc-info-badge"><i class="far fa-clock"></i> ${d.time || '9:00 AM - 5:00 PM'}</span>
+                        <span class="doc-info-badge"><i class="fas fa-map-marker-alt"></i> ${d.address || 'Chamber Address Not Listed'}</span>
+                    </div>
                 </div>
 
                 <div style="background:#fff; padding:5px;">
-                    <label style="font-weight:600; display:block; margin-bottom:10px;">Select Appointment Time</label>
-                    
+                    <label style="font-weight:600; display:block; margin-bottom:5px;">Select Appointment Time</label>
+                    <p style="font-size:0.8rem; color:#EF4444; margin-bottom:10px;">${availableDaysText}</p>
+
                     <div class="datetime-grid">
                         <div>
                             <span style="font-size:0.8rem; color:var(--gray);">Date</span>
@@ -214,8 +224,51 @@ function openDoctorBooking(docId) {
                 </div>
             </div>`;
             
-            // Set minimum date to today
-            document.getElementById('bookingDate').min = new Date().toISOString().split("T")[0];
+            // --- Point C Logic: Restrict Dates & Times ---
+            const dateInput = document.getElementById('bookingDate');
+            const timeInput = document.getElementById('bookingTime');
+            
+            // Set min date to today
+            dateInput.min = new Date().toISOString().split("T")[0];
+
+            dateInput.addEventListener('change', function() {
+                if(!this.value || !scheduleObj) return;
+
+                const selectedDate = new Date(this.value);
+                const dayIndex = selectedDate.getDay(); // 0 = Sun, 1 = Mon...
+
+                // If the selected day is NOT in the doctor's schedule
+                if (!scheduleObj[dayIndex]) {
+                    showToast(`Doctor only available on: ${Object.values(scheduleObj).map(s => s.dayName).join(', ')}`);
+                    this.value = ''; // Reset the input
+                    timeInput.value = '';
+                    timeInput.disabled = true;
+                } else {
+                    // Valid day selected
+                    const hours = scheduleObj[dayIndex];
+                    showToast(`Selected ${hours.dayName}. Hours: ${hours.start} - ${hours.end}`);
+                    timeInput.disabled = false;
+                    // Note: 'min' and 'max' on time inputs don't always strictly block UI in all browsers, 
+                    // but we will validate logic on change.
+                    timeInput.min = hours.start24;
+                    timeInput.max = hours.end24;
+                }
+            });
+
+            timeInput.addEventListener('change', function() {
+                if(!dateInput.value || !scheduleObj) return;
+                
+                const dayIndex = new Date(dateInput.value).getDay();
+                const hours = scheduleObj[dayIndex];
+                
+                if(hours) {
+                    // Current value "14:30"
+                    if(this.value < hours.start24 || this.value > hours.end24) {
+                        showToast(`Please select time between ${hours.start} and ${hours.end}`);
+                        this.value = '';
+                    }
+                }
+            });
     });
 }
 
@@ -391,3 +444,43 @@ function sendComment(pid) {
 function closeModal() { document.getElementById('dashboardModal').classList.remove('active'); }
 function showToast(msg) { const b = document.getElementById('toast-box'); document.getElementById('toast-msg').innerText = msg; b.classList.add('show'); setTimeout(()=>b.classList.remove('show'),3000); }
 function logout() { localStorage.clear(); window.location.href = 'index.html'; }
+
+
+// --- HELPER FUNCTIONS FOR SCHEDULE PARSING ---
+
+// Converts "10:30 PM" to "22:30" for comparison
+function to24Hour(timeStr) {
+    const [time, modifier] = timeStr.split(' ');
+    let [hours, minutes] = time.split(':');
+    if (hours === '12') { hours = '00'; }
+    if (modifier === 'PM') { hours = parseInt(hours, 10) + 12; }
+    return `${hours}:${minutes}`;
+}
+
+// Parses "Mon: 10:30 AM - 02:00 PM | Fri: ..." into an object
+function parseDoctorSchedule(timeString) {
+    if (!timeString) return null;
+    
+    const dayMap = { 'sun': 0, 'mon': 1, 'tue': 2, 'wed': 3, 'thu': 4, 'fri': 5, 'sat': 6 };
+    const schedule = {};
+    const parts = timeString.split('|'); // Split by pipe if multiple days
+    
+    parts.forEach(part => {
+        // Regex to find Day and Time Range
+        // Looks for "Mon: 10:00 AM - 02:00 PM" format
+        const match = part.match(/([A-Za-z]{3})\s*:\s*(\d{1,2}:\d{2}\s*[AP]M)\s*-\s*(\d{1,2}:\d{2}\s*[AP]M)/i);
+        if (match) {
+            const dayKey = match[1].toLowerCase();
+            if (dayMap.hasOwnProperty(dayKey)) {
+                schedule[dayMap[dayKey]] = {
+                    dayName: match[1],
+                    start: match[2], 
+                    end: match[3],
+                    start24: to24Hour(match[2]),
+                    end24: to24Hour(match[3])
+                };
+            }
+        }
+    });
+    return Object.keys(schedule).length > 0 ? schedule : null;
+}
