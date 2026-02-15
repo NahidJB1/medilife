@@ -78,26 +78,40 @@
             return true;
         }
 
-        // --- 2. MAIN LOGIC (UPDATED FOR PHP) ---
+// --- 2. MAIN LOGIC (UPDATED FOR PHP) ---
 
 const API_BASE = 'api/'; // Pointing to your PHP folder
-const role = localStorage.getItem('userRole');
+
+// [UPDATE] Robust Data Retrieval: Handle casing and missing values
+let rawRole = localStorage.getItem('userRole');
+const role = rawRole ? rawRole.toLowerCase().trim() : ''; // Forces 'Patient' -> 'patient'
 const email = localStorage.getItem('userEmail');
 const uid = email; 
-const name = localStorage.getItem('userName');
+const name = localStorage.getItem('userName') || 'User'; // Fallback if name missing
 
-if(!email) window.location.href = 'index.html';
+// [UPDATE] Security Check
+if(!email || !role) {
+    window.location.href = 'index.html';
+}
 
 // Setup basic UI text
 document.getElementById('sideName').innerText = name;
 document.getElementById('headerName').innerText = name;
-document.getElementById('sideRole').innerText = role ? role.charAt(0).toUpperCase() + role.slice(1) : '';
-document.getElementById('headerRole').innerText = role ? role.charAt(0).toUpperCase() + role.slice(1) : '';
+
+// Capitalize first letter for display only
+const displayRole = role.charAt(0).toUpperCase() + role.slice(1);
+document.getElementById('sideRole').innerText = `${displayRole} Account`; // Matches your dashboard style
+document.getElementById('headerRole').innerText = `Update your ${displayRole} details`;
+
 document.getElementById('accEmail').value = email;
 document.getElementById('accUid').value = uid;
 
 // --- UPDATED DYNAMIC FIELDS ---
 const container = document.getElementById('dynamicFields');
+container.innerHTML = ''; // Clear "Loading..."
+
+// Helper to create fade-in animation
+container.style.animation = "fadeIn 0.5s ease-out forwards";
 
 if (role === 'patient') {
     container.innerHTML = `
@@ -250,7 +264,13 @@ function previewImage(input) {
 }
 
 function goBack() {
-    window.location.href = role + '-dashboard.html';
+    // [UPDATE] Ensure we redirect to the lowercase file name (e.g. patient-dashboard.html)
+    // role is already lowercased and trimmed from the logic above
+    if(role) {
+        window.location.href = `${role}-dashboard.html`;
+    } else {
+        window.location.href = 'index.html'; // Fallback
+    }
 }
 
 function switchTab(tabName) {
