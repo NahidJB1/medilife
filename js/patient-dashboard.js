@@ -121,74 +121,115 @@ function openFindDoctorModal() {
         myApps.forEach(a => { myApptMap[a.doctor_id] = { status: a.status, id: a.id }; });
 
         doctors.forEach(d => {
-            const aptData = myApptMap[d.uid];
-            const status = aptData ? aptData.status : null;
-            const aptId = aptData ? aptData.id : null;
+    const aptData = myApptMap[d.uid];
+    const status = aptData ? aptData.status : null;
+    const aptId = aptData ? aptData.id : null;
 
-            let actionArea = '';
-            if (status === 'pending') {
-                actionArea = `<div style="display:flex;gap:8px;align-items:center;justify-content:flex-end;">
-                        <span style="font-size:0.8rem;color:#F59E0B;">Requested</span>
-                        <button class="list-btn" style="background:#EF4444;" onclick="cancelPatientRequest('${aptId}')">Cancel</button></div>`;
-            } else if (status === 'accepted') {
-                actionArea = `<button class="list-btn" disabled style="opacity:0.6;background:#10B981;">Booked</button>`;
-            } else {
-                actionArea = `<button class="list-btn btn-book" onclick="openDoctorBooking('${d.uid}')">Book</button>`;
-            }
-            
-            list.innerHTML += `
-            <div class="list-item">
-                <div style="display:flex; align-items:center; gap:15px;">
-                    <div style="width:40px; height:40px; background:#E5E7EB; border-radius:50%; display:flex; align-items:center; justify-content:center;"><i class="fas fa-user-md"></i></div>
-                    <div>
-                        <span style="font-weight:600;">Dr. ${d.name}</span>
-                        <div style="font-size:0.8rem; color:var(--gray);">${d.specialist || 'General'}</div>
-                    </div>
-                </div> 
-                ${actionArea}
+    // A. Profile Image Logic
+    // If d.profile_pic exists, use it. Otherwise, use a placeholder URL.
+    const imgSrc = d.profile_pic ? d.profile_pic : 'https://via.placeholder.com/150?text=Dr';
+    const imgHtml = `<img src="${imgSrc}" class="doc-avatar-list" alt="Dr">`;
+
+    let actionArea = '';
+    
+    // D. Updated Button Logic
+    if (status === 'pending') {
+        // Pending: Show Requested badge + Cancel
+        actionArea = `
+            <div style="display:flex; flex-direction:column; align-items:flex-end; gap:5px;">
+                <span style="font-size:0.75rem; color:#F59E0B; font-weight:600;">Requested</span>
+                <button class="list-btn" style="background:#EF4444; padding:5px 10px; font-size:0.7rem;" onclick="cancelPatientRequest('${aptId}')">Cancel</button>
             </div>`;
-        });
+    } else if (status === 'accepted') {
+        // Accepted: Show Booked badge + Cancel (User requirement: Cancel remains visible)
+        actionArea = `
+            <div style="display:flex; flex-direction:column; align-items:flex-end; gap:5px;">
+                <span style="font-size:0.75rem; color:#10B981; font-weight:600;">Booked</span>
+                <button class="list-btn" style="background:#EF4444; padding:5px 10px; font-size:0.7rem;" onclick="cancelPatientRequest('${aptId}')">Cancel</button>
+            </div>`;
+    } else {
+        // No booking: Show Book button
+        actionArea = `<button class="list-btn btn-book" onclick="openDoctorBooking('${d.uid}')">Book</button>`;
+    }
+    
+    list.innerHTML += `
+    <div class="list-item" style="animation: slideUp 0.3s ease-out;">
+        <div style="display:flex; align-items:center; gap:15px;">
+            ${imgHtml}
+            <div>
+                <span style="font-weight:600; font-size:1rem;">Dr. ${d.name}</span>
+                <div style="font-size:0.8rem; color:var(--gray);">${d.specialist || 'General'}</div>
+            </div>
+        </div> 
+        ${actionArea}
+    </div>`;
+});
     });
 }
 
 function openDoctorBooking(docId) {
     const container = document.getElementById('docList');
-    container.innerHTML = 'Loading Profile...';
+    container.innerHTML = '<div style="text-align:center; padding:20px;">Loading Profile...</div>';
     
     fetch(`${API_BASE}users.php?action=get&uid=${docId}`).then(r=>r.json()).then(d => {
+        // B. Profile Image for Booking View
+        const imgSrc = d.profile_pic ? d.profile_pic : 'https://via.placeholder.com/150?text=Dr';
+
         container.innerHTML = `
             <div style="animation:fadeIn 0.4s;">
-                <button onclick="openFindDoctorModal()" style="border:none;background:none;cursor:pointer;margin-bottom:15px;">&larr; Back</button>
-                <div style="text-align:center; margin-bottom:20px; border-bottom:1px solid #E5E7EB;">
-                    <h2>Dr. ${d.name}</h2>
-                    <p style="color:var(--primary);">${d.specialist || 'Specialist'}</p>
-                    <p style="color:var(--gray); font-size:0.9rem;">${d.time || 'Hours: 9AM - 5PM'}</p>
+                <button onclick="openFindDoctorModal()" style="border:none;background:none;cursor:pointer;margin-bottom:10px; color:var(--gray);">&larr; Back to list</button>
+                
+                <div class="doc-profile-header" style="text-align:center; margin-bottom:20px; border-bottom:1px solid #E5E7EB; padding-bottom:15px;">
+                    <img src="${imgSrc}" alt="Doctor">
+                    <h2 style="font-size:1.4rem;">Dr. ${d.name}</h2>
+                    <p style="color:var(--primary); font-weight:500;">${d.specialist || 'Specialist'}</p>
+                    <p style="color:var(--gray); font-size:0.85rem; margin-top:5px;"><i class="far fa-clock"></i> ${d.time || '9:00 AM - 5:00 PM'}</p>
                 </div>
-                <div style="background:#F9FAFB; padding:20px; border-radius:12px;">
-                    <label>Select Appointment Time</label>
-                    <input type="text" id="bookingTime" placeholder="e.g. Tomorrow at 10:00 AM" style="width:100%; padding:12px; margin-bottom:20px;">
+
+                <div style="background:#fff; padding:5px;">
+                    <label style="font-weight:600; display:block; margin-bottom:10px;">Select Appointment Time</label>
                     
-                    <label style="display:block; margin-bottom:10px;">Medical Records</label>
-                    <label style="display:flex; gap:10px; padding:10px; background:white; border:1px solid #eee; margin-bottom:10px;">
+                    <div class="datetime-grid">
+                        <div>
+                            <span style="font-size:0.8rem; color:var(--gray);">Date</span>
+                            <input type="date" id="bookingDate" class="modern-input">
+                        </div>
+                        <div>
+                            <span style="font-size:0.8rem; color:var(--gray);">Time</span>
+                            <input type="time" id="bookingTime" class="modern-input">
+                        </div>
+                    </div>
+                    
+                    <label style="font-weight:600; display:block; margin-bottom:10px;">Medical Records Access</label>
+                    <label style="display:flex; align-items:center; gap:10px; padding:12px; background:#F9FAFB; border-radius:10px; border:1px solid #E5E7EB; margin-bottom:10px; cursor:pointer;">
                         <input type="radio" name="docShare" value="true" checked>
                         <span>Share Documents (Recommended)</span>
                     </label>
-                    <label style="display:flex; gap:10px; padding:10px; background:white; border:1px solid #eee; margin-bottom:20px;">
+                    <label style="display:flex; align-items:center; gap:10px; padding:12px; background:#F9FAFB; border-radius:10px; border:1px solid #E5E7EB; margin-bottom:20px; cursor:pointer;">
                         <input type="radio" name="docShare" value="false">
                         <span>Keep Private</span>
                     </label>
 
-                    <button class="list-btn btn-book" style="width:100%; padding:15px;" onclick="confirmBooking('${d.uid}', '${d.name}')">Confirm Booking</button>
+                    <button class="list-btn btn-book" style="width:100%; padding:15px; font-size:1rem; border-radius:30px; box-shadow:0 4px 15px rgba(239,68,68,0.3);" onclick="confirmBooking('${d.uid}', '${d.name}')">Confirm Booking</button>
                 </div>
             </div>`;
+            
+            // Set minimum date to today
+            document.getElementById('bookingDate').min = new Date().toISOString().split("T")[0];
     });
 }
 
 function confirmBooking(docId, docName) {
-    const time = document.getElementById('bookingTime').value;
-    const share = document.querySelector('input[name="docShare"]:checked').value;
+    // C. Combine Date and Time
+    const dateVal = document.getElementById('bookingDate').value;
+    const timeVal = document.getElementById('bookingTime').value;
     
-    if(!time) { showToast("Enter preferred time"); return; }
+    if(!dateVal || !timeVal) { showToast("Please select both Date and Time"); return; }
+    
+    // Format: "2026-02-15 at 14:30"
+    const finalTimeStr = `${dateVal} at ${timeVal}`;
+    
+    const share = document.querySelector('input[name="docShare"]:checked').value;
 
     const fd = new FormData();
     fd.append('action', 'book');
@@ -196,7 +237,7 @@ function confirmBooking(docId, docName) {
     fd.append('patientName', currentUserData.name);
     fd.append('doctorId', docId);
     fd.append('doctorName', docName);
-    fd.append('time', time);
+    fd.append('time', finalTimeStr); // Sending combined string
     fd.append('share', share);
 
     fetch(`${API_BASE}appointments.php`, { method: 'POST', body: fd })
@@ -214,36 +255,55 @@ function cancelPatientRequest(aptId) {
 // --- SCHEDULE & ACCESS REQUESTS ---
 function openPatientSchedule() {
     const modalContent = document.getElementById('modalContent');
-    modalContent.innerHTML = `<h2>My Schedule</h2><div id="schedList">Loading...</div>`;
+    modalContent.innerHTML = `<h2>My Schedule</h2><div id="schedList" style="margin-top:15px;">Loading...</div>`;
     document.getElementById('dashboardModal').classList.add('active');
     
     fetch(`${API_BASE}appointments.php?patient_id=${currentUserData.uid}`)
     .then(r=>r.json()).then(data => {
         const l = document.getElementById('schedList'); l.innerHTML = '';
-        if(data.length === 0) { l.innerHTML = '<p>No appointments.</p>'; return; }
+        if(data.length === 0) { l.innerHTML = '<div style="text-align:center; padding:20px; color:var(--gray);">No appointments found.</div>'; return; }
         
         data.forEach(d => {
             let statusBadge = '';
             let actionPanel = '';
+            let timeDisplay = '';
 
-            if (d.status === 'accepted') statusBadge = `<span style="color:green;">Booked: ${d.scheduled_time||'TBA'}</span>`;
-            else if (d.status === 'pending') statusBadge = '<span style="color:orange;">Pending</span>';
-            else statusBadge = '<span style="color:red;">Declined</span>';
+            // E. Schedule Logic: Show Scheduled Time if accepted, else Preferred Time
+            // Note: DB column 'scheduled_time' is set by doctor. 'preferred_time' is set by patient.
+            if (d.status === 'accepted') {
+                const finalTime = d.scheduled_time ? d.scheduled_time : d.preferred_time;
+                timeDisplay = `<div style="font-size:0.9rem; margin-top:5px;"><i class="far fa-clock"></i> <strong>${finalTime}</strong></div>`;
+                statusBadge = `<span style="background:#DEF7EC; color:#03543F; padding:2px 8px; border-radius:4px; font-size:0.75rem;">Confirmed</span>`;
+            }
+            else if (d.status === 'pending') {
+                timeDisplay = `<div style="font-size:0.9rem; color:var(--gray); margin-top:5px;">Requested: ${d.preferred_time}</div>`;
+                statusBadge = '<span style="background:#FEF3C7; color:#92400E; padding:2px 8px; border-radius:4px; font-size:0.75rem;">Pending</span>';
+            }
+            else {
+                statusBadge = '<span style="background:#FEE2E2; color:#991B1B; padding:2px 8px; border-radius:4px; font-size:0.75rem;">Declined</span>';
+            }
 
+            // Access Request Logic (unchanged)
             if (d.status === 'accepted' && d.access_request === 'pending') {
                 actionPanel = `
-                    <div style="background:#FEF2F2; padding:10px; border-radius:8px; margin-top:10px;">
-                        <p style="color:#B91C1C; margin-bottom:8px;">Dr. ${d.doctor_name} requests access.</p>
-                        <button class="list-btn btn-book" onclick="respondToAccess('${d.id}', 'true')">Allow</button>
-                        <button class="list-btn" style="background:#9CA3AF;" onclick="respondToAccess('${d.id}', 'false')">Deny</button>
+                    <div style="background:#FFF1F2; padding:12px; border-radius:8px; margin-top:12px; border:1px dashed #F43F5E;">
+                        <p style="color:#BE123C; font-size:0.9rem; margin-bottom:8px; display:flex; align-items:center; gap:5px;"><i class="fas fa-lock"></i> Dr. ${d.doctor_name} requests file access.</p>
+                        <div style="display:flex; gap:10px;">
+                            <button class="list-btn btn-book" style="font-size:0.8rem;" onclick="respondToAccess('${d.id}', 'true')">Allow</button>
+                            <button class="list-btn" style="background:#fff; border:1px solid #9CA3AF; color:#374151; font-size:0.8rem;" onclick="respondToAccess('${d.id}', 'false')">Deny</button>
+                        </div>
                     </div>`;
             }
 
             l.innerHTML += `
-                <div class="list-item" style="display:block; padding:20px;">
-                    <div style="display:flex; justify-content:space-between;">
-                        <div><strong>Dr. ${d.doctor_name}</strong><br>${statusBadge}</div>
-                        <small>${new Date(d.request_date).toLocaleDateString()}</small>
+                <div class="list-item" style="display:block; padding:15px; border-left: 4px solid ${d.status === 'accepted' ? 'var(--secondary)' : (d.status === 'pending' ? '#F59E0B' : '#EF4444')};">
+                    <div style="display:flex; justify-content:space-between; align-items:start;">
+                        <div>
+                            <div style="font-weight:600; font-size:1.1rem;">Dr. ${d.doctor_name}</div>
+                            ${timeDisplay}
+                            <div style="margin-top:5px;">${statusBadge}</div>
+                        </div>
+                        <small style="color:var(--gray);">${new Date(d.request_date).toLocaleDateString()}</small>
                     </div>
                     ${actionPanel}
                 </div>`;
