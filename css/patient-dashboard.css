@@ -169,16 +169,30 @@
     box-shadow: 0 2px 5px rgba(0,0,0,0.1);
 }
 
+/* Updated for Point A: Bigger Profile Picture */
 .doc-profile-header img {
-    width: 80px;
-    height: 80px;
+    width: 120px;  /* Increased from 80px */
+    height: 120px; /* Increased from 80px */
     border-radius: 50%;
     object-fit: cover;
-    border: 3px solid var(--primary);
-    margin-bottom: 10px;
+    border: 4px solid var(--primary); /* Slightly thicker border */
+    margin-bottom: 15px;
     animation: fadeIn 0.5s ease;
+    box-shadow: 0 4px 10px rgba(239, 68, 68, 0.2);
 }
 
+.doc-info-badge {
+    display: inline-block;
+    background: #FEF2F2;
+    color: var(--dark);
+    padding: 5px 12px;
+    border-radius: 20px;
+    font-size: 0.85rem;
+    margin: 3px;
+    border: 1px solid #FECACA;
+}
+
+/* ... keep the rest of datetime-grid / modern-input as is ... */
 .datetime-grid {
     display: grid;
     grid-template-columns: 1fr 1fr;
