@@ -2,67 +2,88 @@
 include 'db_connect.php';
 header('Content-Type: application/json');
 
+$method = $_SERVER['REQUEST_METHOD'];
 $action = $_REQUEST['action'] ?? '';
 
-// 1. UPLOAD FILE (X-Ray, PDF, etc.)
-if ($action == 'upload') {
-    $pid = $_POST['patientId'];
-    $did = $_POST['doctorId'] ?? '';
-    $dname = $_POST['doctorName'] ?? '';
-    $type = $_POST['reportType'];
-    $cat = $_POST['docCategory'] ?? $type;
-    $by = $_POST['uploadedBy'];
+// --- GET REQUESTS (Fetching Data) ---
+if ($method === 'GET') {
+    $patient_id = $_GET['patient_id'] ?? '';
+    $type = $_GET['type'] ?? '';        // e.g., 'Prescription'
+    $uploader = $_GET['uploader'] ?? ''; // e.g., 'patient' or 'doctor'
 
-    if (isset($_FILES['file'])) {
-        $target_dir = "../uploads/";
-        if (!file_exists($target_dir)) mkdir($target_dir, 0777, true);
+    // Base SQL
+    $sql = "SELECT * FROM reports WHERE patient_id = '$patient_id'";
 
-        $fileName = time() . "_" . basename($_FILES["file"]["name"]);
-        $target_file = $target_dir . $fileName;
-
-        if (move_uploaded_file($_FILES["file"]["tmp_name"], $target_file)) {
-            // Web accessible path
-            $webPath = "uploads/" . $fileName;
-            
-            $stmt = $conn->prepare("INSERT INTO reports (patient_id, doctor_id, doctor_name, report_type, doc_category, file_path, uploaded_by, is_manual) VALUES (?, ?, ?, ?, ?, ?, ?, 0)");
-            $stmt->bind_param("sssssss", $pid, $did, $dname, $type, $cat, $webPath, $by);
-            
-            if($stmt->execute()) echo json_encode(["status" => "success"]);
-            else echo json_encode(["status" => "error"]);
-        } else {
-            echo json_encode(["status" => "error", "message" => "Move failed"]);
-        }
+    // Add filters if they exist
+    if (!empty($type)) {
+        $sql .= " AND report_type = '$type'";
     }
-}
+    if (!empty($uploader)) {
+        $sql .= " AND uploaded_by = '$uploader'";
+    }
 
-// 2. MANUAL PRESCRIPTION (Text)
-elseif ($action == 'manual') {
-    $pid = $_POST['patientId'];
-    $did = $_POST['doctorId'];
-    $dname = $_POST['doctorName'];
-    $content = $_POST['content'];
-    
-    // We store doctorDetails JSON in the 'file_path' column or a new column 'content' 
-    // depending on your SQL schema. I will assume a 'content' column exists.
-    
-    $stmt = $conn->prepare("INSERT INTO reports (patient_id, doctor_id, doctor_name, report_type, uploaded_by, is_manual, content) VALUES (?, ?, ?, 'Prescription', 'doctor', 1, ?)");
-    $stmt->bind_param("ssss", $pid, $did, $dname, $content);
-    
-    if($stmt->execute()) echo json_encode(["status" => "success"]);
-    else echo json_encode(["status" => "error", "message" => $conn->error]);
-}
+    $sql .= " ORDER BY timestamp DESC";
 
-// 3. GET PRESCRIPTIONS (For Pharmacy)
-elseif ($action == 'get_prescriptions') {
-    $pid = $_GET['patient_id'];
-    $sql = "SELECT * FROM reports WHERE patient_id = ? AND report_type = 'Prescription' ORDER BY timestamp DESC";
-    $stmt = $conn->prepare($sql);
-    $stmt->bind_param("s", $pid);
-    $stmt->execute();
-    $result = $stmt->get_result();
+    $result = $conn->query($sql);
     
     $data = [];
-    while($row = $result->fetch_assoc()) $data[] = $row;
+    while ($row = $result->fetch_assoc()) {
+        // Add a clean date for JS
+        $row['formatted_date'] = date("M d, Y", strtotime($row['timestamp']));
+        $data[] = $row;
+    }
     echo json_encode($data);
+}
+
+// --- POST REQUESTS (Saving Data) ---
+elseif ($method === 'POST') {
+    
+    // 1. UPLOAD FILE (Used by both Doctor & Patient)
+    if ($action == 'upload') {
+        $pid = $_POST['patientId'];
+        $did = $_POST['doctorId'] ?? '';
+        $dname = $_POST['doctorName'] ?? '';
+        $type = $_POST['reportType']; // 'Prescription', 'Report', or 'Patient Upload'
+        $cat = $_POST['docCategory'] ?? $type;
+        $by = $_POST['uploadedBy']; // 'doctor' or 'patient'
+
+        if (isset($_FILES['file'])) {
+            $target_dir = "../uploads/";
+            if (!file_exists($target_dir)) mkdir($target_dir, 0777, true);
+
+            $fileName = time() . "_" . basename($_FILES["file"]["name"]);
+            $target_file = $target_dir . $fileName;
+
+            if (move_uploaded_file($_FILES["file"]["tmp_name"], $target_file)) {
+                // Store path relative to API or Root
+                $dbPath = "uploads/" . $fileName;
+                
+                $stmt = $conn->prepare("INSERT INTO reports (patient_id, doctor_id, doctor_name, report_type, doc_category, file_path, uploaded_by, is_manual) VALUES (?, ?, ?, ?, ?, ?, ?, 0)");
+                $stmt->bind_param("sssssss", $pid, $did, $dname, $type, $cat, $dbPath, $by);
+                
+                if($stmt->execute()) echo json_encode(["status" => "success"]);
+                else echo json_encode(["status" => "error", "message" => $stmt->error]);
+            } else {
+                echo json_encode(["status" => "error", "message" => "File move failed"]);
+            }
+        } else {
+            echo json_encode(["status" => "error", "message" => "No file sent"]);
+        }
+    }
+
+    // 2. MANUAL PRESCRIPTION (Doctor Only)
+    elseif ($action == 'manual') {
+        $pid = $_POST['patientId'];
+        $did = $_POST['doctorId'];
+        $dname = $_POST['doctorName'];
+        $content = $_POST['content'];
+        $docDetails = $_POST['doctorDetails']; // JSON string
+        
+        $stmt = $conn->prepare("INSERT INTO reports (patient_id, doctor_id, doctor_name, report_type, doc_category, uploaded_by, is_manual, content, doctor_details) VALUES (?, ?, ?, 'Prescription', 'Prescription', 'doctor', 1, ?, ?)");
+        $stmt->bind_param("ssssss", $pid, $did, $dname, $content, $docDetails);
+        
+        if($stmt->execute()) echo json_encode(["status" => "success"]);
+        else echo json_encode(["status" => "error", "message" => $stmt->error]);
+    }
 }
 ?>
