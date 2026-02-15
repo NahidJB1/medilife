@@ -157,3 +157,53 @@
         display: none !important;
     }
 }
+
+
+/* --- NEW ADDITIONS FOR DOCTOR UI --- */
+.doc-avatar-list {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 2px solid var(--primary);
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+}
+
+.doc-profile-header img {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 3px solid var(--primary);
+    margin-bottom: 10px;
+    animation: fadeIn 0.5s ease;
+}
+
+.datetime-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 15px;
+    margin-bottom: 20px;
+}
+
+.modern-input {
+    width: 100%;
+    padding: 12px;
+    border: 1px solid #E5E7EB;
+    border-radius: 10px;
+    outline: none;
+    font-family: 'Poppins', sans-serif;
+    background: #F9FAFB;
+    transition: 0.3s;
+}
+
+.modern-input:focus {
+    border-color: var(--primary);
+    background: #fff;
+    box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1);
+}
+
+/* Mobile responsive adjustment */
+@media (max-width: 480px) {
+    .datetime-grid { grid-template-columns: 1fr; }
+}
