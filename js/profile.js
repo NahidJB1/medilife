@@ -43,71 +43,129 @@ document.addEventListener('DOMContentLoaded', () => {
 
 // --- 3. CORE FUNCTIONS ---
 
+// --- REPLACE YOUR EXISTING renderFormFields FUNCTION WITH THIS ---
+
 function renderFormFields() {
     const container = document.getElementById('dynamicFields');
-    container.innerHTML = ''; // Clear "Loading..."
+    container.innerHTML = ''; 
     container.style.animation = "fadeIn 0.5s ease-out forwards";
 
+    // Common attributes for validation: No negatives, Read-only by default
+    const numAttr = 'type="number" min="0" oninput="if(this.value<0)this.value=0" disabled';
+    const textAttr = 'type="text" disabled';
+
+    let html = '';
+
     if (role === 'patient') {
-        container.innerHTML = `
-            <div class="form-group"><label>Full Name</label><input type="text" class="form-input" id="inp_name"></div>
-            <div class="form-group"><label>Gender</label><select class="form-input" id="inp_gender"><option value="">Select</option><option value="Male">Male</option><option value="Female">Female</option><option value="Other">Other</option></select></div>
-            <div class="form-group"><label>Age</label><input type="number" class="form-input" id="inp_age"></div>
-            <div class="form-group"><label>Blood Group</label><select class="form-input" id="inp_bloodGroup"><option value="">Select</option><option>A+</option><option>B+</option><option>O+</option><option>AB+</option><option>A-</option><option>B-</option><option>O-</option><option>AB-</option></select></div>
-            <div class="form-group"><label>Height (cm)</label><input type="number" class="form-input" id="inp_height"></div>
-            <div class="form-group"><label>Weight (kg)</label><input type="number" class="form-input" id="inp_weight"></div>
-            <div class="form-group" style="grid-column:1/-1"><label>Address</label><input type="text" class="form-input" id="inp_address"></div>
+        html = `
+            <div class="form-group"><label>Full Name</label><input ${textAttr} class="form-input" id="inp_name"></div>
+            <div class="form-group"><label>Gender</label><select class="form-input" id="inp_gender" disabled><option value="">Select</option><option value="Male">Male</option><option value="Female">Female</option><option value="Other">Other</option></select></div>
+            
+            <div class="form-group"><label>Age</label><input ${numAttr} class="form-input" id="inp_age"></div>
+            
+            <div class="form-group"><label>Blood Group</label><select class="form-input" id="inp_bloodGroup" disabled><option value="">Select</option><option>A+</option><option>B+</option><option>O+</option><option>AB+</option><option>A-</option><option>B-</option><option>O-</option><option>AB-</option></select></div>
+            
+            <div class="form-group"><label>Height (ft/in)</label><input ${textAttr} class="form-input" id="inp_height" placeholder="e.g. 5'6&quot;"></div>
+            
+            <div class="form-group"><label>Weight (kg)</label><input ${numAttr} class="form-input" id="inp_weight"></div>
+            
+            <div class="form-group" style="grid-column:1/-1"><label>Address</label><input ${textAttr} class="form-input" id="inp_address"></div>
             
             <div class="section-divider">Emergency Contact</div>
-            <div class="form-group"><label>Contact Name</label><input type="text" class="form-input" id="inp_emName"></div>
-            <div class="form-group"><label>Relation</label><input type="text" class="form-input" id="inp_emRelation" placeholder="e.g. Spouse"></div>
-            <div class="form-group"><label>Phone</label><input type="tel" class="form-input" id="inp_emPhone"></div>
-            <div class="form-group"><label>Email</label><input type="email" class="form-input" id="inp_emEmail"></div>
+            <div class="form-group"><label>Contact Name</label><input ${textAttr} class="form-input" id="inp_emName"></div>
+            <div class="form-group"><label>Relation</label><input ${textAttr} class="form-input" id="inp_emRelation" placeholder="e.g. Spouse"></div>
+            <div class="form-group"><label>Phone</label><input type="tel" disabled class="form-input" id="inp_emPhone"></div>
+            <div class="form-group"><label>Email</label><input type="email" disabled class="form-input" id="inp_emEmail"></div>
         `;
     } else if (role === 'doctor') {
-        container.innerHTML = `
-            <div class="form-group"><label>Full Name</label><input type="text" class="form-input" id="inp_name"></div>
-            <div class="form-group"><label>Specialist In</label><input type="text" class="form-input" id="inp_specialist"></div>
-            <div class="form-group"><label>Degrees</label><input type="text" class="form-input" id="inp_degrees"></div>
-            <div class="form-group"><label>Contact Number</label><input type="tel" class="form-input" id="inp_phone"></div>
-            <div class="form-group" style="grid-column:1/-1"><label>Chamber Address</label><input type="text" class="form-input" id="inp_address"></div>
+        html = `
+            <div class="form-group"><label>Full Name</label><input ${textAttr} class="form-input" id="inp_name"></div>
+            <div class="form-group"><label>Specialist In</label><input ${textAttr} class="form-input" id="inp_specialist"></div>
+            <div class="form-group"><label>Degrees</label><input ${textAttr} class="form-input" id="inp_degrees"></div>
+            <div class="form-group"><label>Contact Number</label><input type="tel" disabled class="form-input" id="inp_phone"></div>
+            <div class="form-group" style="grid-column:1/-1"><label>Chamber Address</label><input ${textAttr} class="form-input" id="inp_address"></div>
             
             <div class="form-group" style="grid-column:1/-1">
                 <label>Manage Schedule</label>
-                <div class="time-builder-area">
-                    <div style="display:flex; gap:8px; margin-bottom:15px; flex-wrap:wrap;">
-                        <div class="day-circle" onclick="toggleDay(this)" data-d="Mon">M</div>
-                        <div class="day-circle" onclick="toggleDay(this)" data-d="Tue">T</div>
-                        <div class="day-circle" onclick="toggleDay(this)" data-d="Wed">W</div>
-                        <div class="day-circle" onclick="toggleDay(this)" data-d="Thu">T</div>
-                        <div class="day-circle" onclick="toggleDay(this)" data-d="Fri">F</div>
-                        <div class="day-circle" onclick="toggleDay(this)" data-d="Sat">S</div>
-                        <div class="day-circle" onclick="toggleDay(this)" data-d="Sun">S</div>
-                    </div>
-                    <div class="time-controls-row" style="display:flex; flex-wrap:wrap; gap:15px; align-items:flex-end; margin-bottom:15px;">
-                        <div><span style="font-size:0.75rem; color:var(--gray);">Open</span><div class="time-select-group"><select id="openH" class="time-select">${generateOptions(1,12)}</select> : <select id="openM" class="time-select">${generateOptions(0,50,10)}</select><select id="openAmPm" class="time-select"><option>AM</option><option>PM</option></select></div></div>
-                        <div><span style="font-size:0.75rem; color:var(--gray);">Close</span><div class="time-select-group"><select id="closeH" class="time-select">${generateOptions(1,12)}</select> : <select id="closeM" class="time-select">${generateOptions(0,50,10)}</select><select id="closeAmPm" class="time-select"><option>PM</option><option>AM</option></select></div></div>
-                        <button type="button" class="btn-add-time" onclick="addScheduleRow()"><i class="fas fa-plus"></i> Add</button>
-                    </div>
-                    <div id="scheduleContainer" style="border-top:1px solid #E5E7EB; padding-top:10px;">
-                        <p id="emptySchedMsg" style="font-size:0.85rem; color:var(--gray); font-style:italic;">No hours added yet.</p>
-                    </div>
+                <div class="time-builder-area" id="scheduleArea" style="opacity:0.6; pointer-events:none;">
+                    ${getScheduleHTML()} 
                 </div>
                 <input type="hidden" id="inp_time">
             </div>
         `;
     } else if (role === 'pharmacy') {
-        container.innerHTML = `
-            <div class="form-group"><label>Pharmacy Name</label><input type="text" class="form-input" id="inp_name"></div>
-            <div class="form-group"><label>Registration Number</label><input type="text" class="form-input" id="inp_regNum"></div>
-            <div class="form-group" style="grid-column:1/-1"><label>Address</label><input type="text" class="form-input" id="inp_address"></div>
+        html = `
+            <div class="form-group"><label>Pharmacy Name</label><input ${textAttr} class="form-input" id="inp_name"></div>
+            <div class="form-group"><label>Registration Number</label><input ${textAttr} class="form-input" id="inp_regNum"></div>
+            <div class="form-group" style="grid-column:1/-1"><label>Address</label><input ${textAttr} class="form-input" id="inp_address"></div>
         `;
     }
+
+    container.innerHTML = html;
+
+    // HIDE SAVE BUTTON INITIALLY
+    document.querySelector('.btn-save').style.display = 'none';
+
+    // INSERT EDIT BUTTON
+    const editBtn = document.createElement('button');
+    editBtn.type = 'button';
+    editBtn.className = 'btn-edit';
+    editBtn.innerHTML = '<i class="fas fa-pen"></i> Edit Details';
+    editBtn.onclick = enableEditing;
+    editBtn.style.marginBottom = "20px";
     
-    // Pre-fill Name immediately from LocalStorage to avoid flicker
-    if(document.getElementById('inp_name')) {
-        document.getElementById('inp_name').value = name;
+    // Add button before the form grid
+    container.parentNode.insertBefore(editBtn, container);
+
+    if(document.getElementById('inp_name')) document.getElementById('inp_name').value = name;
+}
+
+// --- ADD THIS HELPER FUNCTION ---
+function getScheduleHTML() {
+    // Returns the inner HTML for schedule builder to keep renderFormFields clean
+    return `
+        <div style="display:flex; gap:8px; margin-bottom:15px; flex-wrap:wrap;">
+            <div class="day-circle" onclick="toggleDay(this)" data-d="Mon">M</div>
+            <div class="day-circle" onclick="toggleDay(this)" data-d="Tue">T</div>
+            <div class="day-circle" onclick="toggleDay(this)" data-d="Wed">W</div>
+            <div class="day-circle" onclick="toggleDay(this)" data-d="Thu">T</div>
+            <div class="day-circle" onclick="toggleDay(this)" data-d="Fri">F</div>
+            <div class="day-circle" onclick="toggleDay(this)" data-d="Sat">S</div>
+            <div class="day-circle" onclick="toggleDay(this)" data-d="Sun">S</div>
+        </div>
+        <div class="time-controls-row" style="display:flex; flex-wrap:wrap; gap:15px; align-items:flex-end; margin-bottom:15px;">
+            <div><span style="font-size:0.75rem; color:var(--gray);">Open</span><div class="time-select-group"><select id="openH" class="time-select">${generateOptions(1,12)}</select> : <select id="openM" class="time-select">${generateOptions(0,50,10)}</select><select id="openAmPm" class="time-select"><option>AM</option><option>PM</option></select></div></div>
+            <div><span style="font-size:0.75rem; color:var(--gray);">Close</span><div class="time-select-group"><select id="closeH" class="time-select">${generateOptions(1,12)}</select> : <select id="closeM" class="time-select">${generateOptions(0,50,10)}</select><select id="closeAmPm" class="time-select"><option>PM</option><option>AM</option></select></div></div>
+            <button type="button" class="btn-add-time" onclick="addScheduleRow()"><i class="fas fa-plus"></i> Add</button>
+        </div>
+        <div id="scheduleContainer" style="border-top:1px solid #E5E7EB; padding-top:10px;">
+            <p id="emptySchedMsg" style="font-size:0.85rem; color:var(--gray); font-style:italic;">No hours added yet.</p>
+        </div>
+    `;
+}
+
+// --- ADD THIS NEW FUNCTION ---
+function enableEditing() {
+    // 1. Enable all inputs
+    document.querySelectorAll('.form-input').forEach(el => {
+        el.disabled = false;
+        el.style.backgroundColor = '#fff'; // Visual feedback
+    });
+
+    // 2. Enable Schedule area (Doctor only)
+    const sched = document.getElementById('scheduleArea');
+    if(sched) {
+        sched.style.opacity = '1';
+        sched.style.pointerEvents = 'all';
     }
+
+    // 3. Show Save Button
+    const saveBtn = document.querySelector('.btn-save');
+    saveBtn.style.display = 'block';
+    saveBtn.style.animation = "fadeIn 0.5s";
+
+    // 4. Hide Edit Button (optional, to prevent double clicking)
+    document.querySelector('.btn-edit').style.display = 'none';
 }
 
 function loadUserData() {
