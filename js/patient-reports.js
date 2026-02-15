@@ -98,7 +98,7 @@ function createDocCard(data, canDelete) {
         const safeDetails = (data.doctor_details || '{}').replace(/"/g, '&quot;');
         viewAction = `openDocViewer('manual', \`${safeContent}\`, '${title}', '${data.doctor_name}', '${name}', '${dateStr}', \`${safeDetails}\`)`;
     } else {
-        const filePath = API_BASE + data.file_path;
+        const filePath = data.file_path;
         viewAction = `openDocViewer('file', '${filePath}', '${title}')`;
     }
 
@@ -152,3 +152,42 @@ function openDocViewer(type, content, title, docName, patName, dateStr, drDetail
 }
 
 function closeDocViewer() { document.getElementById('documentViewerModal').classList.remove('active'); }
+
+// --- NEW FUNCTIONS FOR UPLOADING ---
+
+function triggerPatientUpload() {
+    document.getElementById('patientUploadInput').click();
+}
+
+function handlePatientUpload(input) {
+    if(input.files && input.files[0]) {
+        const fd = new FormData();
+        fd.append('action', 'upload'); 
+        fd.append('file', input.files[0]);
+        fd.append('patientId', email); // email variable holds the logged-in patient's ID
+        fd.append('reportType', 'Patient Upload'); // Type
+        fd.append('docCategory', 'Patient Upload'); // Category
+        fd.append('uploadedBy', 'patient'); 
+
+        // Optional: Send empty doctor info to prevent PHP warnings if strict
+        fd.append('doctorId', '');
+        fd.append('doctorName', '');
+
+        // Show a loading toast or state here if you want
+        
+        fetch(`${API_BASE}reports.php`, { method: 'POST', body: fd })
+        .then(res => res.json())
+        .then(data => {
+            if(data.status === 'success') {
+                alert("Uploaded Successfully"); // Or use your showToast() if available
+                loadAllDocuments(); // Refresh list
+            } else {
+                alert("Error: " + (data.message || "Upload Failed"));
+            }
+        })
+        .catch(err => {
+            console.error(err);
+            alert("Network Error during upload");
+        });
+    }
+}
