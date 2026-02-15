@@ -59,9 +59,17 @@
         </div>
 
         <div id="patientDocs" class="tab-content" style="display: none;">
-            <div class="doc-category-title">My Uploaded Files</div>
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
+                <div class="doc-category-title" style="margin:0;">My Uploaded Files</div>
+                <button class="btn-view" style="background:var(--primary); color:white; border:none;" onclick="triggerPatientUpload()">
+                    <i class="fas fa-upload"></i> Upload New
+                </button>
+            </div>
+            
             <div id="list-my-uploads" class="doc-list"><p class="empty-state">Loading...</p></div>
         </div>
+
+        <input type="file" id="patientUploadInput" hidden onchange="handlePatientUpload(this)">
 
         <div class="modal-overlay" id="documentViewerModal">
     <div class="dashboard-modal">
