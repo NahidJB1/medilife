@@ -1,4 +1,3 @@
-       // --- 1. SETUP ---
         const db = firebase.firestore();
         let currentUser = null;
         let currentPostType = 'question';
@@ -8,7 +7,7 @@
         });
 
         function initCommunity() {
-    // Check LocalStorage for basic User Data (Fast Load)
+               
     const role = localStorage.getItem('userRole') || 'patient';
     const name = localStorage.getItem('userName') || 'User';
     const uid = localStorage.getItem('userUid'); 
