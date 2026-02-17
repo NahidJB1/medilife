@@ -1,6 +1,5 @@
 const API_BASE = 'api/';
 
-// --- INIT PATIENT DATA ---
 const role = localStorage.getItem('userRole');
 if(role !== 'patient') { window.location.href = 'index.html'; } 
 
@@ -11,12 +10,10 @@ if (!storedEmail) { window.location.href = 'index.html'; }
 
 const currentUserData = { name: name, role: 'patient', uid: storedEmail, email: storedEmail };
 
-// Load Avatar
 fetch(`${API_BASE}users.php?action=get&uid=${currentUserData.uid}`).then(r=>r.json()).then(d=>{
     if(d.profile_pic) document.getElementById('sideAvatar').src = d.profile_pic;
 });
 
-// Sync Patient to DB
 const fd = new FormData();
 fd.append('action', 'sync');
 fd.append('uid', currentUserData.uid);
