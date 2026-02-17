@@ -1,7 +1,6 @@
 // --- CONFIG ---
 const API_BASE = 'api/'; // Path to your PHP folder
 
-// --- INIT DOCTOR DATA ---
 const role = localStorage.getItem('userRole');
 if(role !== 'doctor') { window.location.href = 'index.html'; }
 
@@ -16,7 +15,6 @@ if (!storedEmail) {
 
 const currentUserData = { name: name, role: 'doctor', uid: storedEmail, email: storedEmail };
 
-// UI Init
 document.getElementById('sideName').innerText = name;
 document.getElementById('welcomeTitle').innerText = "Hello, " + name;
 document.getElementById('currentDate').innerText = new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
