@@ -1,7 +1,5 @@
-// --- CONFIG ---
 const API_BASE = 'api/';
 
-// --- AUTH CHECK ---
 const role = localStorage.getItem('userRole');
 const email = localStorage.getItem('userEmail');
 const name = localStorage.getItem('userName') || 'User';
