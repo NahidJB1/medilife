@@ -261,10 +261,9 @@ function loadPatientHistory(typeFilter, containerId, fallbackDrDetails, uploaded
                 viewAction = `openDocViewer('manual', \`${safeContent}\`, '${displayTitle}', '${docName}', '${currentViewingPatient.name}', '${date}', \`${drDetailsStr}\`)`;
             } else {
                 // File Upload
-                const safeContent = (d.content || "").replace(/`/g, "'").replace(/\$/g, "").replace(/\\/g, "\\\\").replace(/"/g, '&quot;');
-                const drDetailsStr = JSON.stringify(storedDocDetails).replace(/"/g, '&quot;');
-                viewAction = `openDocViewer('manual', \`${safeContent}\`, '${displayTitle}', '${docName}', '${currentViewingPatient.name}', '${date}', \`${drDetailsStr}\`)`;
-            } else {
+                viewAction = `openDocViewer('file', '${d.file_path}', '${displayTitle}', '${docName}', '${currentViewingPatient.name}', '${date}', '')`;
+            }
+
 
             container.innerHTML += `
                 <div class="list-item" style="display:flex; justify-content:space-between; align-items:center; padding:15px; background:white; border:1px solid #E5E7EB; border-radius:12px; margin-bottom:10px;">
