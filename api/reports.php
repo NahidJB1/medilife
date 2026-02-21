@@ -6,33 +6,41 @@ $method = $_SERVER['REQUEST_METHOD'];
 $action = $_REQUEST['action'] ?? '';
 
 // --- GET REQUESTS (Fetching Data) ---
+// --- GET REQUESTS (Fetching Data) ---
 if ($method === 'GET') {
     $patient_id = $_GET['patient_id'] ?? '';
-    $type = $_GET['type'] ?? '';        // e.g., 'Prescription'
-    $uploader = $_GET['uploader'] ?? ''; // e.g., 'patient' or 'doctor'
+    $type = $_GET['type'] ?? '';        
+    $uploader = $_GET['uploader'] ?? ''; 
 
-    // Base SQL
-    $sql = "SELECT * FROM reports WHERE patient_id = '$patient_id'";
+    try {
+        $sql = "SELECT * FROM reports WHERE patient_id = '$patient_id'";
 
-    // Add filters if they exist
-    if (!empty($type)) {
-        $sql .= " AND report_type = '$type'";
+        if (!empty($type)) {
+            $sql .= " AND report_type = '$type'";
+        }
+        if (!empty($uploader)) {
+            $sql .= " AND uploaded_by = '$uploader'";
+        }
+
+        $sql .= " ORDER BY timestamp DESC";
+        $result = $conn->query($sql);
+
+        if (!$result) {
+            echo json_encode(["error" => "Database Query Failed: " . $conn->error]);
+            exit;
+        }
+
+        $data = [];
+        while ($row = $result->fetch_assoc()) {
+            $row['formatted_date'] = date("M d, Y", strtotime($row['timestamp']));
+            $data[] = $row;
+        }
+        echo json_encode($data);
+    } catch (Exception $e) {
+        // Catch any DB exceptions to guarantee valid JSON is returned instead of a 500 error page
+        echo json_encode(["error" => "Server Error: " . $e->getMessage()]);
     }
-    if (!empty($uploader)) {
-        $sql .= " AND uploaded_by = '$uploader'";
-    }
-
-    $sql .= " ORDER BY timestamp DESC";
-
-    $result = $conn->query($sql);
-    
-    $data = [];
-    while ($row = $result->fetch_assoc()) {
-        // Add a clean date for JS
-        $row['formatted_date'] = date("M d, Y", strtotime($row['timestamp']));
-        $data[] = $row;
-    }
-    echo json_encode($data);
+    exit; // Prevent further execution
 }
 
 // --- POST REQUESTS (Saving Data) ---
@@ -88,21 +96,5 @@ elseif ($method === 'POST') {
     }
 }
 
-// Add this inside the "POST REQUESTS" section of reports.php
-
-elseif ($action == 'generate_summary') {
-    $patient_id = $_POST['patientId'];
-    
-    // 1. Fetch all records for this patient to summarize
-    $sql = "SELECT report_type, doc_category, content, doctor_name, timestamp 
-            FROM reports WHERE patient_id = '$patient_id' 
-            ORDER BY timestamp DESC LIMIT 10";
-    $result = $conn->query($sql);
-    
-    $recordsText = "";
-    while ($row = $result->fetch_assoc()) {
-        $content = $row['is_manual'] == 1 ? $row['content'] : "File: " . $row['doc_category'];
-        $recordsText .= "Date: {$row['timestamp']} | Type: {$row['report_type']} | Details: {$content}\n";
-    }
 
 ?>
