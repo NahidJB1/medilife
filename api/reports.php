@@ -80,7 +80,8 @@ elseif ($method === 'POST') {
         $docDetails = $_POST['doctorDetails']; // JSON string
         
         $stmt = $conn->prepare("INSERT INTO reports (patient_id, doctor_id, doctor_name, report_type, doc_category, uploaded_by, is_manual, content, doctor_details) VALUES (?, ?, ?, 'Prescription', 'Prescription', 'doctor', 1, ?, ?)");
-        $stmt->bind_param("ssssss", $pid, $did, $dname, $content, $docDetails);
+        // Removed the extra 's' from the bind_param string to match the 5 variables
+        $stmt->bind_param("sssss", $pid, $did, $dname, $content, $docDetails);
         
         if($stmt->execute()) echo json_encode(["status" => "success"]);
         else echo json_encode(["status" => "error", "message" => $stmt->error]);
