@@ -79,16 +79,20 @@ function performSearch() {
 }
 
 function loadPrescriptions(patientId) {
-    const safeId = patientId; // IDs are strings in PHP version
+    const safeId = patientId; 
     const div = document.getElementById(`records-${safeId}`);
     
-    fetch(`${API_BASE}reports.php?action=get_prescriptions&patient_id=${patientId}`)
+    // UPDATED: Added type=Prescription and uploader=doctor to strictly filter the results
+    fetch(`${API_BASE}reports.php?action=get_prescriptions&patient_id=${patientId}&type=Prescription&uploader=doctor`)
     .then(r => r.json())
     .then(reports => {
         div.innerHTML = '';
-        if(reports.length === 0) { div.innerHTML = '<small>No prescriptions.</small>'; return; }
+        if(reports.length === 0) { 
+            div.innerHTML = '<div style="padding: 15px; text-align: center; color: var(--gray); font-style: italic;"><i class="fas fa-file-medical-alt" style="font-size: 1.5rem; margin-bottom: 8px; opacity: 0.5; display: block;"></i>No doctor prescriptions found.</div>'; 
+            return; 
+        }
 
-        reports.forEach(r => {
+        reports.forEach((r, index) => {
             let viewAction = '';
             if(r.is_manual == 1) {
                 // Manual Text
@@ -99,10 +103,16 @@ function loadPrescriptions(patientId) {
                 viewAction = `openDocViewer('file', '${r.file_path}', 'Prescription Doc')`;
             }
 
+            // UPDATED: Added stagger animation (slideUp) and modernized the view button
             div.innerHTML += `
-                <div class="list-item" style="padding:10px; border-bottom:1px solid #eee;">
-                    <div><strong>Dr. ${r.doctor_name}</strong><br><small>${new Date(r.timestamp).toLocaleDateString()}</small></div>
-                    <button class="list-btn btn-view" onclick="${viewAction}">View Rx</button>
+                <div class="list-item" style="padding:12px 15px; border-bottom:1px solid #eee; animation: slideUp 0.4s ease-out forwards; animation-delay: ${index * 0.08}s; opacity: 0;">
+                    <div>
+                        <strong style="color: var(--dark); font-size: 1.05rem;"><i class="fas fa-user-md" style="color: var(--primary); margin-right: 5px;"></i>Dr. ${r.doctor_name}</strong><br>
+                        <small style="color: var(--gray); font-weight: 500;">${r.formatted_date || new Date(r.timestamp).toLocaleDateString()}</small>
+                    </div>
+                    <button class="list-btn" style="background: var(--secondary); color: white; display: flex; align-items: center; gap: 6px; box-shadow: 0 4px 6px -1px rgba(34, 197, 94, 0.2); transition: all 0.3s ease;" onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform='translateY(0)'" onclick="${viewAction}">
+                        <i class="fas fa-eye"></i> View Rx
+                    </button>
                 </div>`;
         });
     });
