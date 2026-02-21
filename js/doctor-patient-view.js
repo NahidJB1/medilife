@@ -472,42 +472,48 @@ async function generateSmartSummary() {
     const modal = document.getElementById('aiModal');
     const contentBox = document.getElementById('aiSummaryContent');
     
-    modal.classList.add('active');
-    contentBox.innerHTML = '<div class="ai-loading"><i class="fas fa-spinner fa-spin"></i> Analyzing medical history...</div>';
-
-    // 1. Gather context from the UI lists
-    let medicalContext = "";
-    const items = document.querySelectorAll('.list-item');
-    items.forEach(item => {
-        medicalContext += item.innerText.replace(/\n/g, " ") + " | ";
-    });
-
-    if (!medicalContext) {
-        contentBox.innerHTML = "No medical records found to summarize.";
+    if (!currentViewingPatient || !currentViewingPatient.id) {
+        showToast("No patient selected to summarize.");
         return;
     }
+
+    modal.classList.add('active');
+    
+    // Smooth modern loading animation
+    contentBox.innerHTML = `
+        <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; padding: 30px; color: var(--primary);">
+            <i class="fas fa-circle-notch fa-spin" style="font-size:2.5rem; margin-bottom: 15px;"></i>
+            <p style="font-weight: 500; color: var(--dark);">AI is reading prescriptions & analyzing files...</p>
+        </div>`;
 
     try {
         const response = await fetch(`${API_BASE}ai_summary.php`, {
             method: 'POST',
             headers: { 'Content-Type: application/json' },
-            body: JSON.stringify({ context: medicalContext })
+            body: JSON.stringify({ patientId: currentViewingPatient.id })
         });
         
         const data = await response.json();
-        // Gemini's response structure
+        
+        if (data.error) throw new Error(data.error);
+        if (!data.candidates) throw new Error("No summary generated.");
+
         const aiText = data.candidates[0].content.parts[0].text;
         
-        // Smoothly display with simple Markdown-to-HTML formatting
-        contentBox.innerHTML = aiText.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>').replace(/\n/g, '<br>');
-        
-        // Add a "Pulse" animation to show it's "alive"
+        // Output directly (we asked PHP to format with HTML)
+        contentBox.innerHTML = aiText;
         contentBox.style.animation = "fadeIn 0.8s ease-in-out";
+
     } catch (err) {
-        contentBox.innerHTML = "Sorry, I couldn't generate a summary right now.";
         console.error("AI Error:", err);
+        contentBox.innerHTML = `
+            <div style="padding: 20px; text-align: center; color: #EF4444; background: #FEF2F2; border-radius: 8px;">
+                <i class="fas fa-exclamation-triangle" style="font-size: 2rem; margin-bottom: 10px;"></i>
+                <p>Failed to generate summary. Make sure records exist and the API is connected.</p>
+            </div>`;
     }
 }
+
 
 function closeDocViewer() { document.getElementById('documentViewerModal').classList.remove('active'); }
 function showToast(msg) { const b = document.getElementById('toast-box'); document.getElementById('toast-msg').innerText = msg; b.classList.add('show'); setTimeout(()=>b.classList.remove('show'),3000); }
