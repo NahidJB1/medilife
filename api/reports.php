@@ -105,28 +105,4 @@ elseif ($action == 'generate_summary') {
         $recordsText .= "Date: {$row['timestamp']} | Type: {$row['report_type']} | Details: {$content}\n";
     }
 
-    // 2. Call Gemini API
-    $apiKey = "YOUR_GEMINI_API_KEY"; // Get from Google AI Studio
-    $apiUrl = "https://generativelanguage.googleapis.com/v1beta/models/gemini-3-pro:generateContent?key=" . $apiKey;
-
-    $prompt = "You are a medical assistant for the platform MEDeLIFE. 
-               Summarize the following patient history into a concise, professional medical brief. 
-               Highlight: 1. Recent Diagnoses, 2. Active Medications, 3. Critical Lab Trends. 
-               History:\n" . $recordsText;
-
-    $payload = json_encode([
-        "contents" => [["parts" => [["text" => $prompt]]]]
-    ]);
-
-    $ch = curl_init($apiUrl);
-    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-    curl_setopt($ch, CURLOPT_POST, true);
-    curl_setopt($ch, CURLOPT_POSTFIELDS, $payload);
-    curl_setopt($ch, CURLOPT_HTTPHEADER, ['Content-Type: application/json']);
-    
-    $response = curl_exec($ch);
-    curl_close($ch);
-
-    echo $response; // Return Gemini's JSON response to the frontend
-}
 ?>
