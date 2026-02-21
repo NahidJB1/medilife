@@ -467,5 +467,49 @@ function openDocViewer(type, content, title, docName, patName, dateStr, drDetail
     viewerModal.classList.add('active');
 }
 
+
+async function generateSmartSummary() {
+    const modal = document.getElementById('aiModal');
+    const contentBox = document.getElementById('aiSummaryContent');
+    
+    modal.classList.add('active');
+    contentBox.innerHTML = '<div class="ai-loading"><i class="fas fa-spinner fa-spin"></i> Analyzing medical history...</div>';
+
+    // 1. Gather context from the UI lists
+    let medicalContext = "";
+    const items = document.querySelectorAll('.list-item');
+    items.forEach(item => {
+        medicalContext += item.innerText.replace(/\n/g, " ") + " | ";
+    });
+
+    if (!medicalContext) {
+        contentBox.innerHTML = "No medical records found to summarize.";
+        return;
+    }
+
+    try {
+        const response = await fetch(`${API_BASE}ai_summary.php`, {
+            method: 'POST',
+            headers: { 'Content-Type: application/json' },
+            body: JSON.stringify({ context: medicalContext })
+        });
+        
+        const data = await response.json();
+        // Gemini's response structure
+        const aiText = data.candidates[0].content.parts[0].text;
+        
+        // Smoothly display with simple Markdown-to-HTML formatting
+        contentBox.innerHTML = aiText.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>').replace(/\n/g, '<br>');
+        
+        // Add a "Pulse" animation to show it's "alive"
+        contentBox.style.animation = "fadeIn 0.8s ease-in-out";
+    } catch (err) {
+        contentBox.innerHTML = "Sorry, I couldn't generate a summary right now.";
+        console.error("AI Error:", err);
+    }
+}
+
 function closeDocViewer() { document.getElementById('documentViewerModal').classList.remove('active'); }
 function showToast(msg) { const b = document.getElementById('toast-box'); document.getElementById('toast-msg').innerText = msg; b.classList.add('show'); setTimeout(()=>b.classList.remove('show'),3000); }
+
+
