@@ -194,26 +194,43 @@ async function generateSmartSummary() {
     const modal = document.getElementById('aiModal');
     const contentBox = document.getElementById('aiSummaryContent');
     
-    modal.classList.add('active');
-    contentBox.innerHTML = '<div class="ai-loading"><i class="fas fa-spinner fa-spin"></i> Processing your reports...</div>';
+    if (!email) {
+        showToast("User session not found.");
+        return;
+    }
 
-    let history = "";
-    document.querySelectorAll('.doc-card').forEach(card => {
-        history += card.querySelector('.doc-details').innerText + " ";
-    });
+    modal.classList.add('active');
+    
+    contentBox.innerHTML = `
+        <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; padding: 30px; color: var(--primary);">
+            <i class="fas fa-magic fa-bounce" style="font-size:2.5rem; margin-bottom: 15px;"></i>
+            <p style="font-weight: 500; color: var(--dark);">Analyzing your uploaded records and prescriptions...</p>
+        </div>`;
 
     try {
         const response = await fetch(`${API_BASE}ai_summary.php`, {
             method: 'POST',
             headers: { 'Content-Type: application/json' },
-            body: JSON.stringify({ context: history })
+            body: JSON.stringify({ patientId: email })
         });
         
         const data = await response.json();
+        
+        if (data.error) throw new Error(data.error);
+        if (!data.candidates) throw new Error("No summary generated.");
+
         const aiText = data.candidates[0].content.parts[0].text;
         
-        contentBox.innerHTML = aiText.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>').replace(/\n/g, '<br>');
+        contentBox.innerHTML = aiText;
+        contentBox.style.animation = "fadeIn 0.8s ease-in-out";
+
     } catch (err) {
-        contentBox.innerHTML = "Failed to load summary. Please check your connection.";
+        console.error("AI Error:", err);
+        contentBox.innerHTML = `
+            <div style="padding: 20px; text-align: center; color: #EF4444; background: #FEF2F2; border-radius: 8px;">
+                <i class="fas fa-exclamation-triangle" style="font-size: 2rem; margin-bottom: 10px;"></i>
+                <p>Failed to analyze records. Please try again later.</p>
+            </div>`;
     }
 }
+  
