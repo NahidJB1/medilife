@@ -189,3 +189,31 @@ function handlePatientUpload(input) {
         });
     }
 }
+
+async function generateSmartSummary() {
+    const modal = document.getElementById('aiModal');
+    const contentBox = document.getElementById('aiSummaryContent');
+    
+    modal.classList.add('active');
+    contentBox.innerHTML = '<div class="ai-loading"><i class="fas fa-spinner fa-spin"></i> Processing your reports...</div>';
+
+    let history = "";
+    document.querySelectorAll('.doc-card').forEach(card => {
+        history += card.querySelector('.doc-details').innerText + " ";
+    });
+
+    try {
+        const response = await fetch(`${API_BASE}ai_summary.php`, {
+            method: 'POST',
+            headers: { 'Content-Type: application/json' },
+            body: JSON.stringify({ context: history })
+        });
+        
+        const data = await response.json();
+        const aiText = data.candidates[0].content.parts[0].text;
+        
+        contentBox.innerHTML = aiText.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>').replace(/\n/g, '<br>');
+    } catch (err) {
+        contentBox.innerHTML = "Failed to load summary. Please check your connection.";
+    }
+}
