@@ -195,23 +195,24 @@ async function generateSmartSummary() {
     const contentBox = document.getElementById('aiSummaryContent');
     
     if (!email) {
-        showToast("User session not found.");
+        showToast("Patient email not found.");
         return;
     }
 
     modal.classList.add('active');
     
+    // Smooth modern loading animation
     contentBox.innerHTML = `
         <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; padding: 30px; color: var(--primary);">
-            <i class="fas fa-magic fa-bounce" style="font-size:2.5rem; margin-bottom: 15px;"></i>
-            <p style="font-weight: 500; color: var(--dark);">Analyzing your uploaded records and prescriptions...</p>
+            <i class="fas fa-circle-notch fa-spin" style="font-size:2.5rem; margin-bottom: 15px;"></i>
+            <p style="font-weight: 500; color: var(--dark);">AI is reading your medical records...</p>
         </div>`;
 
     try {
         const response = await fetch(`${API_BASE}ai_summary.php`, {
             method: 'POST',
             headers: { 'Content-Type: application/json' },
-            body: JSON.stringify({ patientId: email })
+            body: JSON.stringify({ patientId: email }) // Fixed: Sending patientId to match the PHP API
         });
         
         const data = await response.json();
@@ -221,16 +222,23 @@ async function generateSmartSummary() {
 
         const aiText = data.candidates[0].content.parts[0].text;
         
-        contentBox.innerHTML = aiText;
-        contentBox.style.animation = "fadeIn 0.8s ease-in-out";
-
+        contentBox.innerHTML = aiText.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>').replace(/\n/g, '<br>');
+        contentBox.style.animation = "fadeIn 0.8s ease-in-out"; // Keeping the site feeling alive
     } catch (err) {
         console.error("AI Error:", err);
         contentBox.innerHTML = `
             <div style="padding: 20px; text-align: center; color: #EF4444; background: #FEF2F2; border-radius: 8px;">
                 <i class="fas fa-exclamation-triangle" style="font-size: 2rem; margin-bottom: 10px;"></i>
-                <p>Failed to analyze records. Please try again later.</p>
+                <p>Failed to generate summary. Make sure records exist and the API is connected.</p>
             </div>`;
     }
 }
-  
+
+// Added this to handle notifications smoothly without breaking the UI flow with alert pop-ups
+function showToast(msg) {
+    const b = document.getElementById('toast-box');
+    if (!b) return;
+    document.getElementById('toast-msg').innerText = msg;
+    b.classList.add('show');
+    setTimeout(() => b.classList.remove('show'), 3000);
+}
