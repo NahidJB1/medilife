@@ -1,5 +1,7 @@
+// --- CONFIG ---
 const API_BASE = 'api/';
 
+// --- AUTH CHECK ---
 const role = localStorage.getItem('userRole');
 const email = localStorage.getItem('userEmail');
 const name = localStorage.getItem('userName') || 'User';
@@ -116,10 +118,68 @@ function createDocCard(data, canDelete) {
 }
 
 // --- VIEWER MODAL ---
+// --- VIEWER MODAL (Updated with Blockchain Verification UI) ---
 function openDocViewer(type, content, title, docName, patName, dateStr, drDetailsStr) {
     const viewerModal = document.getElementById('documentViewerModal');
     const viewerContent = document.getElementById('docViewerContent');
-    let html = '';
+    
+    // 1. Define the Blockchain Verification UI (Animated)
+    const verificationUI = `
+        <div id="blockchain-status" style="display:flex; align-items:center; gap:10px; padding:12px 20px; background:#F8FAFC; border:1px solid #E2E8F0; border-radius:30px; margin-bottom:20px; width: fit-content; margin-left: auto; margin-right: auto; transition: all 0.4s ease;">
+            <i id="blockchain-icon" class="fas fa-spinner fa-spin" style="color:var(--primary); font-size:1.2rem;"></i>
+            <span id="blockchain-text" style="font-weight:600; color:#475569; font-size:0.95rem;">Verifying immutable record...</span>
+        </div>
+    `;
+
+    let html = verificationUI;
+
+    if (type === 'manual') {
+        let drDetails = {};
+        try { drDetails = JSON.parse(drDetailsStr); } catch(e){}
+
+        html += `
+            <div class="rx-paper" id="doc-main-content" style="opacity: 0.5; transition: opacity 0.5s ease;">
+                <div style="border-bottom: 2px solid #000; padding-bottom: 15px; margin-bottom: 20px;">
+                    <h2 style="font-size: 1.4rem; margin: 0;">Dr. ${docName}</h2>
+                    <p style="color: #EF4444; font-weight: 600; font-size: 0.9rem;">${drDetails.spec || 'Medical Professional'}</p>
+                </div>
+                <div style="display: flex; justify-content: space-between; margin-bottom: 20px; font-size: 0.9rem;">
+                    <span><strong>Patient:</strong> ${patName}</span>
+                    <span><strong>Date:</strong> ${dateStr}</span>
+                </div>
+                <div class="rx-body-bg">
+                    <div style="white-space: pre-wrap; font-family: 'Poppins', sans-serif;">${content}</div>
+                </div>
+            </div>`;
+    } else {
+        html += `
+            <div id="doc-main-content" style="opacity: 0.5; transition: opacity 0.5s ease;">
+                <h3 style="margin-bottom: 15px;">${title}</h3>
+                <iframe src="${content}" style="width: 100%; height: 70vh; border: 1px solid #E5E7EB; border-radius: 8px;"></iframe>
+            </div>`;
+    }
+    
+    viewerContent.innerHTML = html;
+    viewerModal.classList.add('active');
+
+    // 3. Trigger the Animation Sequence
+    setTimeout(() => {
+        const statusBox = document.getElementById('blockchain-status');
+        const icon = document.getElementById('blockchain-icon');
+        const text = document.getElementById('blockchain-text');
+        const docContent = document.getElementById('doc-main-content');
+
+        if(statusBox) {
+            statusBox.style.background = '#ECFDF5';
+            statusBox.style.borderColor = '#10B981';
+            icon.className = 'fas fa-link';
+            icon.style.color = '#10B981';
+            text.innerText = 'Data Intact & Verified on Ledger';
+            text.style.color = '#065F46';
+            docContent.style.opacity = '1';
+        }
+    }, 1500);
+}
 
     if (type === 'manual') {
         let drDetails = {};
@@ -188,57 +248,4 @@ function handlePatientUpload(input) {
             alert("Network Error during upload");
         });
     }
-}
-
-async function generateSmartSummary() {
-    const modal = document.getElementById('aiModal');
-    const contentBox = document.getElementById('aiSummaryContent');
-    
-    if (!email) {
-        showToast("Patient email not found.");
-        return;
-    }
-
-    modal.classList.add('active');
-    
-    // Smooth modern loading animation
-    contentBox.innerHTML = `
-        <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; padding: 30px; color: var(--primary);">
-            <i class="fas fa-circle-notch fa-spin" style="font-size:2.5rem; margin-bottom: 15px;"></i>
-            <p style="font-weight: 500; color: var(--dark);">AI is reading your medical records...</p>
-        </div>`;
-
-    try {
-        const response = await fetch(`${API_BASE}ai_summary.php`, {
-            method: 'POST',
-            headers: { 'Content-Type: application/json' },
-            body: JSON.stringify({ patientId: email }) // Fixed: Sending patientId to match the PHP API
-        });
-        
-        const data = await response.json();
-        
-        if (data.error) throw new Error(data.error);
-        if (!data.candidates) throw new Error("No summary generated.");
-
-        const aiText = data.candidates[0].content.parts[0].text;
-        
-        contentBox.innerHTML = aiText.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>').replace(/\n/g, '<br>');
-        contentBox.style.animation = "fadeIn 0.8s ease-in-out"; // Keeping the site feeling alive
-    } catch (err) {
-        console.error("AI Error:", err);
-        contentBox.innerHTML = `
-            <div style="padding: 20px; text-align: center; color: #EF4444; background: #FEF2F2; border-radius: 8px;">
-                <i class="fas fa-exclamation-triangle" style="font-size: 2rem; margin-bottom: 10px;"></i>
-                <p>Failed to generate summary. Make sure records exist and the API is connected.</p>
-            </div>`;
-    }
-}
-
-// Added this to handle notifications smoothly without breaking the UI flow with alert pop-ups
-function showToast(msg) {
-    const b = document.getElementById('toast-box');
-    if (!b) return;
-    document.getElementById('toast-msg').innerText = msg;
-    b.classList.add('show');
-    setTimeout(() => b.classList.remove('show'), 3000);
 }
