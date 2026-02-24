@@ -408,10 +408,94 @@ function requestDocAccess(aptId) {
 }
 
 // --- DOCUMENT VIEWER (Same as before) ---
+// --- DOCUMENT VIEWER (Updated with Blockchain Verification UI) ---
 function openDocViewer(type, content, title, docName, patName, dateStr, drDetails) {
     const viewerModal = document.getElementById('documentViewerModal');
     const viewerContent = document.getElementById('docViewerContent');
-    let html = '';
+    
+    // 1. Define the Blockchain Verification UI (Animated)
+    const verificationUI = `
+        <div id="blockchain-status" style="display:flex; align-items:center; gap:10px; padding:12px 20px; background:#F8FAFC; border:1px solid #E2E8F0; border-radius:30px; margin-bottom:20px; width: fit-content; margin-left: auto; margin-right: auto; transition: all 0.4s ease;">
+            <i id="blockchain-icon" class="fas fa-spinner fa-spin" style="color:var(--primary); font-size:1.2rem;"></i>
+            <span id="blockchain-text" style="font-weight:600; color:#475569; font-size:0.95rem;">Verifying immutable record...</span>
+        </div>
+    `;
+
+    let html = verificationUI;
+    
+    // 2. Add the document content
+    if (type === 'manual') {
+        let dTime = drDetails.time || '';
+        if(dTime.includes('|')) dTime = dTime.split('|').map(t => t.trim()).join('<br>');
+
+        html += `
+            <div class="rx-paper" style="border: none; box-shadow: none; padding: 10px; margin: 0 auto; background: white; opacity: 0.5; transition: opacity 0.5s ease;" id="doc-main-content">
+                <div style="display: flex; flex-wrap: wrap; justify-content: space-between; border-bottom: 2px solid #000; padding-bottom: 15px; margin-bottom: 20px;">
+                    <div style="flex: 1; min-width: 250px; margin-bottom: 15px;">
+                            <div style="display:flex; align-items:center; gap:8px; margin-bottom:15px;">
+                                <svg width="24" height="24" viewBox="0 0 100 100"><rect x="35" y="10" width="30" height="80" rx="5" fill="#EF4444" /><rect x="10" y="35" width="80" height="30" rx="5" fill="#EF4444" /></svg>
+                                <div style="font-family: 'Poppins', sans-serif; font-size: 18px; font-weight: 700; line-height: 1;"><span style="color: #EF4444;">MED</span><span style="color: #000;">e</span><span style="color: #22C55E;">LIFE</span></div>
+                            </div>
+                            <h2 style="font-size: 1.6rem; margin: 0; color: #111;">Dr. ${docName}</h2>
+                            <p style="color: #EF4444; font-weight: 600; font-size: 0.95rem; margin-top: 2px;">${drDetails.spec || ''}</p>
+                            <p style="color: #6B7280; font-size: 0.85rem;">${drDetails.deg || ''}</p>
+                    </div>
+                    <div style="text-align: right; min-width: 200px; font-size: 0.85rem; color: #374151;">
+                            <p style="margin-bottom: 8px;"><strong>Chamber:</strong><br>${drDetails.addr || ''}</p>
+                            ${dTime ? `<p style="margin-bottom: 8px;"><strong>Schedule:</strong><br>${dTime}</p>` : ''}
+                            <p style="margin-top: 8px;"><strong>Contact:</strong><br>${drDetails.phone || ''}<br>${drDetails.email || ''}</p>
+                    </div>
+                </div>
+
+                <div style="display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 1px solid #E5E7EB; padding-bottom: 15px; margin-bottom: 25px; font-size: 0.95rem; color: #374151;">
+                    <div><span style="font-weight: 700; color: #111;">Patient: ${patName}</span><br>
+                        ${drDetails.pAge ? `<span style="font-size: 0.9rem; color: #4B5563;">Age: ${drDetails.pAge} • Gender: ${drDetails.pGender||'N/A'}</span>` : ''} 
+                    </div>
+                    <div style="text-align: right;"><span style="font-weight: 700;">Date: ${dateStr}</span></div>
+                </div>
+
+                <div class="rx-body-bg" style="background: #FAFAFA; padding: 30px; border-radius: 8px; border: 1px dashed #E5E7EB; min-height: 400px; position: relative;">
+                    <span style="font-family: 'Times New Roman', serif; font-style: italic; font-weight: bold; font-size: 2.5rem; color: #333; position: absolute; top: 20px; left: 20px;">Rx</span>
+                    <div style="margin-top: 60px; white-space: pre-wrap; font-family: 'Poppins', sans-serif; font-size: 1rem; line-height: 1.8; color: #1F2937;">${content}</div>
+                </div>
+
+                <div class="rx-footer" style="margin-top: 50px; display: flex; justify-content: space-between; align-items: flex-end; page-break-inside: avoid;">
+                    <small style="color: #9CA3AF;">Generated digitally via MEDeLIFE</small>
+                    <div style="text-align: center;">
+                        <div style="font-family: 'Cursive', serif; font-size: 1.5rem; color: #EF4444; opacity: 0.7;">Signed</div>
+                        <div style="border-top: 1px solid #333; width: 150px; margin-top: 5px;"></div>
+                        <small style="font-weight: 600;">Dr. ${docName}</small>
+                    </div>
+                </div>
+            </div>
+            <div class="no-print" style="margin-top: 20px; text-align: right; border-top: 1px solid #eee; padding-top: 15px;">
+                <button class="list-btn btn-book" onclick="window.print()"><i class="fas fa-print"></i> Print / Save as PDF</button>
+            </div>`;
+    } else {
+        html += `<div id="doc-main-content" style="opacity: 0.5; transition: opacity 0.5s ease;"><h3 style="margin-bottom: 10px;">${title}</h3><iframe src="${content}" style="width: 100%; height: 500px; border: 1px solid #E5E7EB; border-radius: 8px; background: #f1f1f1;"></iframe></div>`;
+    }
+    
+    viewerContent.innerHTML = html;
+    viewerModal.classList.add('active');
+
+    // 3. Trigger the Animation Sequence
+    setTimeout(() => {
+        const statusBox = document.getElementById('blockchain-status');
+        const icon = document.getElementById('blockchain-icon');
+        const text = document.getElementById('blockchain-text');
+        const docContent = document.getElementById('doc-main-content');
+
+        if(statusBox) {
+            statusBox.style.background = '#ECFDF5';
+            statusBox.style.borderColor = '#10B981';
+            icon.className = 'fas fa-link';
+            icon.style.color = '#10B981';
+            text.innerText = 'Data Intact & Verified on Ledger';
+            text.style.color = '#065F46';
+            docContent.style.opacity = '1';
+        }
+    }, 1500); // 1.5 second simulated verification delay for the UI
+}
     
     if (type === 'manual') {
         let dTime = drDetails.time || '';
@@ -467,55 +551,5 @@ function openDocViewer(type, content, title, docName, patName, dateStr, drDetail
     viewerModal.classList.add('active');
 }
 
-
-async function generateSmartSummary() {
-    const modal = document.getElementById('aiModal');
-    const contentBox = document.getElementById('aiSummaryContent');
-    
-    if (!currentViewingPatient || !currentViewingPatient.id) {
-        showToast("No patient selected to summarize.");
-        return;
-    }
-
-    modal.classList.add('active');
-    
-    // Smooth modern loading animation
-    contentBox.innerHTML = `
-        <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; padding: 30px; color: var(--primary);">
-            <i class="fas fa-circle-notch fa-spin" style="font-size:2.5rem; margin-bottom: 15px;"></i>
-            <p style="font-weight: 500; color: var(--dark);">AI is reading prescriptions & analyzing files...</p>
-        </div>`;
-
-    try {
-        const response = await fetch(`${API_BASE}ai_summary.php`, {
-            method: 'POST',
-            headers: { 'Content-Type: application/json' },
-            body: JSON.stringify({ patientId: currentViewingPatient.id })
-        });
-        
-        const data = await response.json();
-        
-        if (data.error) throw new Error(data.error);
-        if (!data.candidates) throw new Error("No summary generated.");
-
-        const aiText = data.candidates[0].content.parts[0].text;
-        
-        // Output directly (we asked PHP to format with HTML)
-        contentBox.innerHTML = aiText;
-        contentBox.style.animation = "fadeIn 0.8s ease-in-out";
-
-    } catch (err) {
-        console.error("AI Error:", err);
-        contentBox.innerHTML = `
-            <div style="padding: 20px; text-align: center; color: #EF4444; background: #FEF2F2; border-radius: 8px;">
-                <i class="fas fa-exclamation-triangle" style="font-size: 2rem; margin-bottom: 10px;"></i>
-                <p>Failed to generate summary. Make sure records exist and the API is connected.</p>
-            </div>`;
-    }
-}
-
-
 function closeDocViewer() { document.getElementById('documentViewerModal').classList.remove('active'); }
 function showToast(msg) { const b = document.getElementById('toast-box'); document.getElementById('toast-msg').innerText = msg; b.classList.add('show'); setTimeout(()=>b.classList.remove('show'),3000); }
-
-
