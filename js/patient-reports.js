@@ -181,33 +181,7 @@ function openDocViewer(type, content, title, docName, patName, dateStr, drDetail
     }, 1500);
 }
 
-    if (type === 'manual') {
-        let drDetails = {};
-        try { drDetails = JSON.parse(drDetailsStr); } catch(e){}
 
-        html = `
-            <div class="rx-paper">
-                <div style="border-bottom: 2px solid #000; padding-bottom: 15px; margin-bottom: 20px;">
-                    <h2 style="font-size: 1.4rem; margin: 0;">Dr. ${docName}</h2>
-                    <p style="color: #EF4444; font-weight: 600; font-size: 0.9rem;">${drDetails.spec || 'Medical Professional'}</p>
-                </div>
-                <div style="display: flex; justify-content: space-between; margin-bottom: 20px; font-size: 0.9rem;">
-                    <span><strong>Patient:</strong> ${patName}</span>
-                    <span><strong>Date:</strong> ${dateStr}</span>
-                </div>
-                <div class="rx-body-bg">
-                    <div style="white-space: pre-wrap; font-family: 'Poppins', sans-serif;">${content}</div>
-                </div>
-            </div>`;
-    } else {
-        html = `
-            <h3 style="margin-bottom: 15px;">${title}</h3>
-            <iframe src="${content}" style="width: 100%; height: 70vh; border: 1px solid #E5E7EB; border-radius: 8px;"></iframe>`;
-    }
-    
-    viewerContent.innerHTML = html;
-    viewerModal.classList.add('active');
-}
 
 function closeDocViewer() { document.getElementById('documentViewerModal').classList.remove('active'); }
 
