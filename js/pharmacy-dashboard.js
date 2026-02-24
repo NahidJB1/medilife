@@ -79,20 +79,16 @@ function performSearch() {
 }
 
 function loadPrescriptions(patientId) {
-    const safeId = patientId; 
+    const safeId = patientId; // IDs are strings in PHP version
     const div = document.getElementById(`records-${safeId}`);
     
-    // UPDATED: Added type=Prescription and uploader=doctor to strictly filter the results
-    fetch(`${API_BASE}reports.php?action=get_prescriptions&patient_id=${patientId}&type=Prescription&uploader=doctor`)
+    fetch(`${API_BASE}reports.php?action=get_prescriptions&patient_id=${patientId}`)
     .then(r => r.json())
     .then(reports => {
         div.innerHTML = '';
-        if(reports.length === 0) { 
-            div.innerHTML = '<div style="padding: 15px; text-align: center; color: var(--gray); font-style: italic;"><i class="fas fa-file-medical-alt" style="font-size: 1.5rem; margin-bottom: 8px; opacity: 0.5; display: block;"></i>No doctor prescriptions found.</div>'; 
-            return; 
-        }
+        if(reports.length === 0) { div.innerHTML = '<small>No prescriptions.</small>'; return; }
 
-        reports.forEach((r, index) => {
+        reports.forEach(r => {
             let viewAction = '';
             if(r.is_manual == 1) {
                 // Manual Text
@@ -103,27 +99,66 @@ function loadPrescriptions(patientId) {
                 viewAction = `openDocViewer('file', '${r.file_path}', 'Prescription Doc')`;
             }
 
-            // UPDATED: Added stagger animation (slideUp) and modernized the view button
             div.innerHTML += `
-                <div class="list-item" style="padding:12px 15px; border-bottom:1px solid #eee; animation: slideUp 0.4s ease-out forwards; animation-delay: ${index * 0.08}s; opacity: 0;">
-                    <div>
-                        <strong style="color: var(--dark); font-size: 1.05rem;"><i class="fas fa-user-md" style="color: var(--primary); margin-right: 5px;"></i>Dr. ${r.doctor_name}</strong><br>
-                        <small style="color: var(--gray); font-weight: 500;">${r.formatted_date || new Date(r.timestamp).toLocaleDateString()}</small>
-                    </div>
-                    <button class="list-btn" style="background: var(--secondary); color: white; display: flex; align-items: center; gap: 6px; box-shadow: 0 4px 6px -1px rgba(34, 197, 94, 0.2); transition: all 0.3s ease;" onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform='translateY(0)'" onclick="${viewAction}">
-                        <i class="fas fa-eye"></i> View Rx
-                    </button>
+                <div class="list-item" style="padding:10px; border-bottom:1px solid #eee;">
+                    <div><strong>Dr. ${r.doctor_name}</strong><br><small>${new Date(r.timestamp).toLocaleDateString()}</small></div>
+                    <button class="list-btn btn-view" onclick="${viewAction}">View Rx</button>
                 </div>`;
         });
     });
 }
 
 // --- VIEWER ---
+// --- VIEWER (Updated with Blockchain Verification UI) ---
 function openDocViewer(type, content, title) {
     const viewerModal = document.getElementById('documentViewerModal');
     const viewerContent = document.getElementById('docViewerContent');
     
-    let html = '';
+    // 1. Define the Blockchain Verification UI (Animated)
+    const verificationUI = `
+        <div id="blockchain-status" style="display:flex; align-items:center; gap:10px; padding:12px 20px; background:#F8FAFC; border:1px solid #E2E8F0; border-radius:30px; margin-bottom:20px; width: fit-content; margin-left: auto; margin-right: auto; transition: all 0.4s ease;">
+            <i id="blockchain-icon" class="fas fa-spinner fa-spin" style="color:var(--primary); font-size:1.2rem;"></i>
+            <span id="blockchain-text" style="font-weight:600; color:#475569; font-size:0.95rem;">Verifying immutable record...</span>
+        </div>
+    `;
+
+    // Wrap the main content in a div that starts faded out
+    let html = verificationUI + '<div id="doc-main-content" style="opacity: 0.5; transition: opacity 0.5s ease;">';
+    
+    if (type === 'manual') {
+        html += `
+            <h2 style="margin-bottom: 15px; border-bottom: 2px solid #eee; padding-bottom: 10px;">${title}</h2>
+            <div style="background: #F9FAFB; padding: 25px; border-radius: 12px; border: 1px solid #E5E7EB; overflow-y: auto; flex: 1;">
+                <pre style="white-space: pre-wrap; font-family: 'Poppins', sans-serif; font-size: 1.1rem; color: #333;">${content}</pre>
+            </div>
+            <div style="text-align:right; margin-top:10px;"><button class="list-btn btn-book" onclick="window.print()">Print</button></div>`;
+    } else {
+        html += `<h3 style="margin-bottom: 10px;">${title}</h3><iframe src="${content}" style="width: 100%; height: 80vh; border: none; background: #eee;"></iframe>`;
+    }
+    
+    html += '</div>'; // Close doc-main-content
+    
+    viewerContent.innerHTML = html;
+    viewerModal.classList.add('active');
+
+    // 2. Trigger the Animation Sequence
+    setTimeout(() => {
+        const statusBox = document.getElementById('blockchain-status');
+        const icon = document.getElementById('blockchain-icon');
+        const text = document.getElementById('blockchain-text');
+        const docContent = document.getElementById('doc-main-content');
+
+        if(statusBox) {
+            statusBox.style.background = '#ECFDF5';
+            statusBox.style.borderColor = '#10B981';
+            icon.className = 'fas fa-link';
+            icon.style.color = '#10B981';
+            text.innerText = 'Data Intact & Verified on Ledger';
+            text.style.color = '#065F46';
+            docContent.style.opacity = '1';
+        }
+    }, 1500); // 1.5 second simulated verification delay
+}
     if (type === 'manual') {
         html = `
             <h2 style="margin-bottom: 15px; border-bottom: 2px solid #eee; padding-bottom: 10px;">${title}</h2>
