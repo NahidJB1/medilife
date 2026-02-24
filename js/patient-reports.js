@@ -191,35 +191,50 @@ function triggerPatientUpload() {
     document.getElementById('patientUploadInput').click();
 }
 
+// --- NEW FUNCTIONS FOR UPLOADING ---
+
+function showToast(message) {
+    const toast = document.getElementById('toast-box');
+    const msgSpan = document.getElementById('toast-msg');
+    if (toast && msgSpan) {
+        msgSpan.innerText = message;
+        toast.classList.add('active');
+        // Smoothly hide the toast after 3 seconds
+        setTimeout(() => toast.classList.remove('active'), 3000);
+    }
+}
+
+function triggerPatientUpload() {
+    document.getElementById('patientUploadInput').click();
+}
+
 function handlePatientUpload(input) {
     if(input.files && input.files[0]) {
         const fd = new FormData();
         fd.append('action', 'upload'); 
         fd.append('file', input.files[0]);
-        fd.append('patientId', email); // email variable holds the logged-in patient's ID
-        fd.append('reportType', 'Patient Upload'); // Type
-        fd.append('docCategory', 'Patient Upload'); // Category
+        fd.append('patientId', email);
+        fd.append('reportType', 'Patient Upload');
+        fd.append('docCategory', 'Patient Upload');
         fd.append('uploadedBy', 'patient'); 
-
-        // Optional: Send empty doctor info to prevent PHP warnings if strict
         fd.append('doctorId', '');
         fd.append('doctorName', '');
-
-        // Show a loading toast or state here if you want
+        
+        showToast("Uploading document...");
         
         fetch(`${API_BASE}reports.php`, { method: 'POST', body: fd })
         .then(res => res.json())
         .then(data => {
             if(data.status === 'success') {
-                alert("Uploaded Successfully"); // Or use your showToast() if available
-                loadAllDocuments(); // Refresh list
+                showToast("Uploaded Successfully");
+                loadAllDocuments(); 
             } else {
-                alert("Error: " + (data.message || "Upload Failed"));
+                showToast("Error: " + (data.message || "Upload Failed"));
             }
         })
         .catch(err => {
             console.error(err);
-            alert("Network Error during upload");
+            showToast("Network Error during upload");
         });
     }
 }
