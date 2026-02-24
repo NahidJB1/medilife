@@ -34,9 +34,8 @@ function switchReportTab(type) {
     }
 }
 
-// --- LOAD DOCUMENTS (PHP VERSION) ---
+// --- LOAD DOCUMENTS ---
 function loadAllDocuments() {
-    // Fetch ALL reports for this patient
     fetch(`${API_BASE}reports.php?patient_id=${email}`)
     .then(res => res.json())
     .then(data => {
@@ -49,7 +48,6 @@ function loadAllDocuments() {
         let presCount = 0; let repCount = 0; let myCount = 0;
 
         if(data.length === 0) {
-            // Handle completely empty
             renderEmpty(presList, "No prescriptions.");
             renderEmpty(repList, "No reports.");
             renderEmpty(myUploads, "No uploads.");
@@ -58,7 +56,7 @@ function loadAllDocuments() {
 
         data.forEach(doc => {
             if (doc.uploaded_by === 'doctor') {
-                const html = createDocCard(doc, false); // False = cannot delete
+                const html = createDocCard(doc, false);
                 if (doc.report_type === 'Prescription') {
                     presList.innerHTML += html;
                     presCount++;
@@ -67,8 +65,7 @@ function loadAllDocuments() {
                     repCount++;
                 }
             } else {
-                // Patient's own upload
-                const html = createDocCard(doc, true); // True = can delete (optional feature)
+                const html = createDocCard(doc, true);
                 myUploads.innerHTML += html;
                 myCount++;
             }
@@ -91,7 +88,6 @@ function createDocCard(data, canDelete) {
     const docName = data.doctor_name ? `Dr. ${data.doctor_name}` : 'Me';
     const title = data.doc_category || data.report_type;
 
-    // View Action Logic
     let viewAction = '';
     if (data.is_manual == 1) {
         const safeContent = (data.content || '').replace(/`/g, "'").replace(/"/g, '&quot;');
@@ -117,13 +113,11 @@ function createDocCard(data, canDelete) {
     </div>`;
 }
 
-// --- VIEWER MODAL ---
-// --- VIEWER MODAL (Updated with Blockchain Verification UI) ---
+// --- VIEWER MODAL (With Blockchain Animation) ---
 function openDocViewer(type, content, title, docName, patName, dateStr, drDetailsStr) {
     const viewerModal = document.getElementById('documentViewerModal');
     const viewerContent = document.getElementById('docViewerContent');
     
-    // 1. Define the Blockchain Verification UI (Animated)
     const verificationUI = `
         <div id="blockchain-status" style="display:flex; align-items:center; gap:10px; padding:12px 20px; background:#F8FAFC; border:1px solid #E2E8F0; border-radius:30px; margin-bottom:20px; width: fit-content; margin-left: auto; margin-right: auto; transition: all 0.4s ease;">
             <i id="blockchain-icon" class="fas fa-spinner fa-spin" style="color:var(--primary); font-size:1.2rem;"></i>
@@ -162,7 +156,6 @@ function openDocViewer(type, content, title, docName, patName, dateStr, drDetail
     viewerContent.innerHTML = html;
     viewerModal.classList.add('active');
 
-    // 3. Trigger the Animation Sequence
     setTimeout(() => {
         const statusBox = document.getElementById('blockchain-status');
         const icon = document.getElementById('blockchain-icon');
@@ -181,17 +174,9 @@ function openDocViewer(type, content, title, docName, patName, dateStr, drDetail
     }, 1500);
 }
 
-
-
 function closeDocViewer() { document.getElementById('documentViewerModal').classList.remove('active'); }
 
-// --- NEW FUNCTIONS FOR UPLOADING ---
-
-function triggerPatientUpload() {
-    document.getElementById('patientUploadInput').click();
-}
-
-// --- NEW FUNCTIONS FOR UPLOADING ---
+// --- UPLOAD & TOAST FUNCTIONS ---
 
 function showToast(message) {
     const toast = document.getElementById('toast-box');
@@ -199,7 +184,6 @@ function showToast(message) {
     if (toast && msgSpan) {
         msgSpan.innerText = message;
         toast.classList.add('active');
-        // Smoothly hide the toast after 3 seconds
         setTimeout(() => toast.classList.remove('active'), 3000);
     }
 }
@@ -237,4 +221,9 @@ function handlePatientUpload(input) {
             showToast("Network Error during upload");
         });
     }
+}
+
+// --- AI STUB (Prevents console error) ---
+function generateSmartSummary() {
+    showToast("AI Summary feature coming soon!");
 }
