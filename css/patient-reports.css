@@ -140,3 +140,24 @@
 .doc-list .doc-card:nth-child(3) { animation-delay: 0.3s; }
 .doc-list .doc-card:nth-child(4) { animation-delay: 0.4s; }
 .doc-list .doc-card:nth-child(n+5) { animation-delay: 0.5s; }
+
+
+/* --- AI Loading Animation --- */
+.ai-loading-container { 
+    display: flex; flex-direction: column; align-items: center; justify-content: center; 
+    padding: 40px 0; animation: pulseData 1.5s infinite ease-in-out; 
+}
+.ai-brain-icon { font-size: 3rem; color: #8B5CF6; margin-bottom: 15px; }
+.ai-loading-text { color: #6B7280; font-weight: 500; font-size: 1.1rem; }
+.ai-loading-bar { 
+    width: 50px; height: 4px; border-radius: 2px; margin-top: 15px;
+    background: linear-gradient(90deg, #6366f1, #a855f7); 
+}
+.ai-fade-in { 
+    animation: slideUpFade 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards; 
+}
+@keyframes pulseData {
+    0% { opacity: 0.6; transform: scale(0.98); }
+    50% { opacity: 1; transform: scale(1.02); }
+    100% { opacity: 0.6; transform: scale(0.98); }
+}
