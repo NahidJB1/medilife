@@ -88,18 +88,19 @@ function createDocCard(data, canDelete) {
     const docName = data.doctor_name ? `Dr. ${data.doctor_name}` : 'Me';
     const title = data.doc_category || data.report_type;
 
+    // Safely encode content to prevent syntax parsing errors in HTML attributes
     let viewAction = '';
     if (data.is_manual == 1) {
-        const safeContent = (data.content || '').replace(/`/g, "'").replace(/"/g, '&quot;');
-        const safeDetails = (data.doctor_details || '{}').replace(/"/g, '&quot;');
-        viewAction = `openDocViewer('manual', \`${safeContent}\`, '${title}', '${data.doctor_name}', '${name}', '${dateStr}', \`${safeDetails}\`)`;
+        const safeContent = encodeURIComponent(data.content || '');
+        const safeDetails = encodeURIComponent(data.doctor_details || '{}');
+        viewAction = `openDocViewer('manual', decodeURIComponent('${safeContent}'), '${title}', '${data.doctor_name}', '${name}', '${dateStr}', decodeURIComponent('${safeDetails}'))`;
     } else {
         const filePath = data.file_path;
         viewAction = `openDocViewer('file', '${filePath}', '${title}')`;
     }
 
     return `
-    <div class="doc-card">
+    <div class="doc-card fade-in-card">
         <div class="doc-info">
             <div class="doc-icon"><i class="fas ${icon}"></i></div>
             <div class="doc-details">
@@ -227,3 +228,4 @@ function handlePatientUpload(input) {
 function generateSmartSummary() {
     showToast("AI Summary feature coming soon!");
 }
+
