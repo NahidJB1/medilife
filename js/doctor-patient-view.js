@@ -551,5 +551,51 @@ function openDocViewer(type, content, title, docName, patName, dateStr, drDetail
     viewerModal.classList.add('active');
 }
 
+// --- AI SMART SUMMARY ---
+function generateSmartSummary() {
+    if (!currentViewingPatient || !currentViewingPatient.id) {
+        showToast("Error: No valid patient context.");
+        return;
+    }
+
+    const modal = document.getElementById('aiModal');
+    const contentDiv = document.getElementById('aiSummaryContent');
+    
+    // Trigger trendy loading state
+    modal.classList.add('active');
+    contentDiv.innerHTML = `
+        <div class="ai-loading-container">
+            <i class="fas fa-brain ai-brain-icon"></i>
+            <p class="ai-loading-text">Synthesizing clinical summary...</p>
+            <div class="ai-loading-bar"></div>
+        </div>
+    `;
+
+    fetch('ai_summary.php', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ patientId: currentViewingPatient.id })
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data.error) {
+            contentDiv.innerHTML = `<p style="color: #EF4444; text-align: center;"><i class="fas fa-exclamation-triangle"></i> ${data.error}</p>`;
+            return;
+        }
+        
+        try {
+            const summaryText = data.candidates[0].content.parts[0].text;
+            contentDiv.innerHTML = `<div class="ai-fade-in">${summaryText}</div>`;
+        } catch (e) {
+            console.error("Gemini Parsing Error:", e, data);
+            contentDiv.innerHTML = `<p style="color: #EF4444; text-align: center;">Data structure mismatch from AI model.</p>`;
+        }
+    })
+    .catch(err => {
+        console.error("Network error:", err);
+        contentDiv.innerHTML = `<p style="color: #EF4444; text-align: center;">Unable to process request at this time.</p>`;
+    });
+}
+
 function closeDocViewer() { document.getElementById('documentViewerModal').classList.remove('active'); }
 function showToast(msg) { const b = document.getElementById('toast-box'); document.getElementById('toast-msg').innerText = msg; b.classList.add('show'); setTimeout(()=>b.classList.remove('show'),3000); }
