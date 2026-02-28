@@ -240,7 +240,7 @@ function generateSmartSummary() {
     `;
 
     // Fetch from backend
-    fetch('ai_summary.php', {
+    fetch(`${API_BASE}ai_summary.php`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ patientId: email }) // Email acts as the Patient ID here
