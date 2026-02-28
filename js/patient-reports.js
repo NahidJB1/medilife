@@ -224,8 +224,45 @@ function handlePatientUpload(input) {
     }
 }
 
-// --- AI STUB (Prevents console error) ---
+// --- AI SMART SUMMARY ---
 function generateSmartSummary() {
-    showToast("AI Summary feature coming soon!");
-}
+    const modal = document.getElementById('aiModal');
+    const contentDiv = document.getElementById('aiSummaryContent');
+    
+    // Trigger trendy loading state
+    modal.classList.add('active');
+    contentDiv.innerHTML = `
+        <div class="ai-loading-container">
+            <i class="fas fa-brain ai-brain-icon"></i>
+            <p class="ai-loading-text">Analyzing medical records...</p>
+            <div class="ai-loading-bar"></div>
+        </div>
+    `;
 
+    // Fetch from backend
+    fetch('ai_summary.php', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ patientId: email }) // Email acts as the Patient ID here
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data.error) {
+            contentDiv.innerHTML = `<p style="color: #EF4444; text-align: center;"><i class="fas fa-exclamation-triangle"></i> ${data.error}</p>`;
+            return;
+        }
+        
+        // Safely parse Gemini's specific JSON structure
+        try {
+            const summaryText = data.candidates[0].content.parts[0].text;
+            contentDiv.innerHTML = `<div class="ai-fade-in">${summaryText}</div>`;
+        } catch (e) {
+            console.error("Gemini Parsing Error:", e, data);
+            contentDiv.innerHTML = `<p style="color: #EF4444; text-align: center;">Received an unexpected format from the AI.</p>`;
+        }
+    })
+    .catch(err => {
+        console.error("Network error:", err);
+        contentDiv.innerHTML = `<p style="color: #EF4444; text-align: center;">Failed to connect to the AI service. Please try again.</p>`;
+    });
+}
