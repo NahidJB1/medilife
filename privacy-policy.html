@@ -3,13 +3,43 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Privacy Policy - MEDeLIFE</title>
-    <link rel="stylesheet" href="css/style.css"> 
+    <title>Privacy Policy | MEDeLIFE</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="css/style.css"> <!-- Global styles (if any) -->
     <link rel="stylesheet" href="css/privacy-policy.css">
 </head>
 <body>
 
+    <!-- Navbar (same as index.html) -->
+    <nav class="navbar">
+        <a href="index.html" class="logo-container">
+            <svg width="40" height="40" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+                <rect x="35" y="10" width="30" height="80" rx="5" fill="#EF4444" />
+                <rect x="10" y="35" width="80" height="30" rx="5" fill="#EF4444" />
+            </svg>
+            <div style="font-family: 'Poppins', sans-serif; font-size: 22px; font-weight: 700; line-height: 1;">
+                <span style="color: #EF4444;">MED</span><span style="color: #000;">e</span><span style="color: #22C55E;">LIFE</span>
+            </div>
+        </a>
+        
+        <div class="menu-toggle" id="mobile-menu">
+            <i class="fas fa-bars"></i>
+        </div>
+
+        <ul class="nav-links">
+            <li><a href="index.html">Home</a></li>
+            <li><a href="index.html#how-it-works">How it Works</a></li>
+            <li><a href="index.html#features">Features</a></li>
+            <li><a href="community.html">Community</a></li>
+            <li class="mobile-only login-nav-item"><a href="login.html">Login</a></li>
+        </ul>
+
+        <button id="navLoginBtn" class="btn-login desktop-only" onclick="window.location.href='login.html'">Login / Register</button>
+    </nav>
+
     <div class="policy-container">
+        <!-- Sidebar (desktop) -->
         <aside class="policy-sidebar">
             <nav id="policy-nav">
                 <a href="#notice" class="nav-link active">1. Notice & Purpose</a>
@@ -21,10 +51,11 @@
             </nav>
         </aside>
 
+        <!-- Main Content -->
         <main class="policy-content">
             <div class="policy-header">
                 <h1>Privacy Policy and Notice</h1>
-                <p>Effective Date: March 2026</p>
+                <p class="effective-date">Effective Date: March 2026</p>
             </div>
 
             <section id="notice" class="policy-section" style="animation-delay: 0.1s;">
@@ -73,12 +104,21 @@
                 <h2>6. Patient Rights</h2>
                 <div class="accordion-content">
                     <p>You have the right to request access to your health records, request corrections to administrative data, and withdraw your consent for future data processing.</p>
-                    <p><strong>Contact our Data Protection Officer:</strong> privacy@medelife.com</p>
+                    <p><strong>Contact our Data Protection Officer:</strong> <a href="mailto:privacy@medelife.com">privacy@medelife.com</a></p>
                 </div>
             </section>
         </main>
     </div>
 
+    <!-- Footer -->
+    <footer>
+        <p>&copy; 2026 MEDeLIFE. All Rights Reserved. | <a href="privacy-policy.html">Privacy Policy</a></p>
+    </footer>
+
+    <!-- Toast notification (optional, for consistency) -->
+    <div id="toast-box"><i class="fas fa-info-circle"></i> <span id="toast-msg">Notification</span></div>
+
     <script src="js/privacy-policy.js"></script>
+    <script src="js/index.js"></script> <!-- for mobile menu toggle, etc. -->
 </body>
 </html>
