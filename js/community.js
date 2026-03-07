@@ -31,12 +31,17 @@ function initCommunity() {
         else logoLink.href = 'patient-dashboard.html';
     }
 
-    // Set Home icon link dynamically
+    // Set Home & Profile icons dynamically
     const homeLink = document.querySelector('.nav-links a[title="Dashboard"]');
     if (homeLink) {
         if (role === 'doctor') homeLink.href = 'doctor-dashboard.html';
         else if (role === 'pharmacy') homeLink.href = 'pharmacy-dashboard.html';
         else homeLink.href = 'patient-dashboard.html';
+    }
+    
+    const profileLink = document.querySelector('.nav-links a[title="Profile"]');
+    if (profileLink) {
+        profileLink.href = `profile.html?uid=${currentUser.uid}`;
     }
 
     // Show article tab only for doctors
@@ -634,7 +639,7 @@ async function pinPost(postId) {
 
 // --- PROFILE UI TRIGGER ---
 function openProfile(userId) {
-    showToast('Opening Profile... (Requires Phase 2 DB structures)');
+    window.location.href = `profile.html?uid=${userId}`;
 }
 
 // --- COMMENT MANAGEMENT ---
