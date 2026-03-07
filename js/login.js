@@ -73,6 +73,7 @@ async function handleRegister(event) {
     formData.append('email', document.getElementById('regEmail').value);
     formData.append('password', document.getElementById('regPassword').value);
     formData.append('role', document.getElementById('regRole').value);
+    formData.append('privacy_consent', document.getElementById('privacyConsent').checked ? 'true' : 'false');
     
     // Optional fields
     formData.append('phone', document.getElementById('regPhone').value);
