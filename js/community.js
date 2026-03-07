@@ -41,7 +41,7 @@ function initCommunity() {
     
     const profileLink = document.querySelector('.nav-links a[title="Profile"]');
     if (profileLink) {
-        profileLink.href = `profile.html?uid=${currentUser.uid}`;
+        profileLink.href = `community-profile.html?uid=${currentUser.uid}`;
     }
 
     // Show article tab only for doctors
@@ -639,7 +639,7 @@ async function pinPost(postId) {
 
 // --- PROFILE UI TRIGGER ---
 function openProfile(userId) {
-    window.location.href = `profile.html?uid=${userId}`;
+    window.location.href = `community-profile.html?uid=${userId}`;
 }
 
 // --- COMMENT MANAGEMENT ---
