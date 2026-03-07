@@ -99,7 +99,16 @@
                 <input type="password" id="regPassword" placeholder="Minimum 6 characters" minlength="6" required>
             </div>
 
-            <button type="submit" class="btn-primary btn-success" id="btnRegister">Create Account</button>
+            <div class="consent-group">
+                <label class="toggle-switch">
+                    <input type="checkbox" id="privacyConsent" required>
+                    <span class="toggle-slider"></span>
+                </label>
+                <div class="consent-text">
+                    I explicitly consent to the processing of my Sensitive Health Data as outlined in the <a href="privacy-policy.html" target="_blank">Privacy Policy</a>.
+                </div>
+            </div>
+            <button type="submit" class="btn-primary btn-success" id="btnRegister" disabled>Create Account</button>
         </form>
 
     </div>
