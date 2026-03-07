@@ -22,7 +22,15 @@
         <ul class="nav-links">
             <li><a href="dashboard.html" title="Dashboard"><i class="fas fa-home"></i></a></li>
             <li><a href="#" class="active" title="Community"><i class="fas fa-users"></i></a></li>
-            <li><a href="#" title="Notifications"><i class="fas fa-bell"></i></a></li>
+            <li class="nav-item-relative">
+                <a href="#" title="Notifications" onclick="toggleNotifications(event)">
+                    <i class="fas fa-bell"></i>
+                    <span class="notification-badge" id="notifBadge" style="display:none;">0</span>
+                </a>
+                <div class="notifications-dropdown" id="notifDropdown">
+                    <div style="padding: 15px; text-align: center; color: var(--gray);">Loading...</div>
+                </div>
+            </li>
             <li><a href="dashboard.html?profile=1" title="Profile"><i class="fas fa-user-circle"></i></a></li>
         </ul>
     </nav>
@@ -90,6 +98,23 @@
             <div class="cp-footer">
                 <small style="color:var(--gray)">Be respectful. Medical advice here is not a substitute for professional care.</small>
                 <button class="btn-post" onclick="submitPost()">Post</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="editPostModal" onclick="closeEditPostModal(event)">
+        <div class="modal-content create-post-card">
+            <div class="modal-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; border-bottom: 1px solid #eee; padding-bottom: 10px;">
+                <h2 style="font-size: 1.2rem;">Edit Post</h2>
+                <button class="btn-close" onclick="closeEditPostModal()" style="background: none; border: none; font-size: 1.2rem; cursor: pointer; color: var(--gray);"><i class="fas fa-times"></i></button>
+            </div>
+            <div class="input-area">
+                <input type="hidden" id="editPostId">
+                <input type="text" id="editPostTitle" class="post-title-input" placeholder="Article Headline...">
+                <textarea id="editPostContent" placeholder="Update your content..." rows="5"></textarea>
+            </div>
+            <div class="cp-footer">
+                <button class="btn-post" onclick="submitEditPost()">Update Post</button>
             </div>
         </div>
     </div>
