@@ -229,10 +229,73 @@ textarea {
 /* Loading */
 .loading-spinner { text-align: center; padding: 40px; color: gray; }
 
-/* Mobile */
+/* --- NEW UI UPDATES --- */
+
+/* Centered & Icon-only Navbar */
+.nav-links { 
+    display: flex; gap: 2.5rem; list-style: none; 
+    position: absolute; left: 50%; transform: translateX(-50%);
+}
+.nav-links a { 
+    color: var(--gray); font-size: 1.4rem; text-decoration: none; 
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); 
+    padding: 8px 12px; border-radius: 8px;
+}
+.nav-links a:hover, .nav-links a.active { 
+    color: var(--primary); background: #FEF2F2; transform: scale(1.1);
+}
+
+/* Slim Post Trigger */
+.slim-post-trigger {
+    background: white; border-radius: 50px; padding: 10px 15px;
+    box-shadow: var(--shadow); border: 1px solid #E5E7EB;
+    display: flex; align-items: center; gap: 15px; cursor: pointer;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+.slim-post-trigger:hover { transform: translateY(-2px); box-shadow: 0 6px 12px rgba(0,0,0,0.1); }
+.slim-post-trigger .trigger-input {
+    flex: 1; color: var(--gray); background: #F3F4F6;
+    padding: 10px 20px; border-radius: 30px; font-size: 0.95rem; text-align: left;
+}
+
+/* Modal Animations */
+.modal-overlay {
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    background: rgba(0,0,0,0.5); z-index: 2000;
+    display: flex; align-items: center; justify-content: center;
+    opacity: 0; pointer-events: none; transition: opacity 0.3s ease;
+    backdrop-filter: blur(5px);
+}
+.modal-overlay.active { opacity: 1; pointer-events: auto; }
+.modal-content {
+    width: 100%; max-width: 550px; transform: translateY(30px) scale(0.95);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    margin: 20px; padding: 1.5rem;
+}
+.modal-overlay.active .modal-content { transform: translateY(0) scale(1); }
+
+/* Dedicated Answers Section */
+.answers-section {
+    margin-top: 1rem; background: #F0FDF4; padding: 1rem;
+    border-radius: 12px; border: 1px solid #BBF7D0; display: none;
+    animation: fadeIn 0.3s ease;
+}
+.answers-section.open { display: block; }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(-5px); } to { opacity: 1; transform: translateY(0); } }
+
+/* Mobile Optimization */
 @media (max-width: 600px) {
-    .navbar { padding: 0.8rem 4%; }
-    .nav-links { gap: 1rem; }
+    .navbar { padding: 0.8rem 4%; justify-content: center; } /* Centers logo */
+    .nav-links { 
+        position: fixed; bottom: 0; left: 0; transform: none; width: 100%; 
+        background: white; justify-content: space-around; padding: 10px 0; 
+        border-top: 1px solid #eee; gap: 0; box-shadow: 0 -2px 10px rgba(0,0,0,0.05); z-index: 1001;
+    }
+    .nav-links a { font-size: 1.3rem; padding: 10px 15px; }
+    .main-container { padding: 0 10px 80px; margin-top: 80px; } /* Padded bottom for nav */
     .create-post-card { padding: 1rem; }
-    .interaction-bar { gap: 1rem; }
+    .interaction-bar { gap: 1rem; justify-content: space-between; }
+    .action-btn span { display: none; } /* Hide text on mobile, keep icons */
+    .action-btn { font-size: 1.1rem; }
+    .modal-content { align-self: flex-end; margin: 0; border-radius: 20px 20px 0 0; } /* Bottom sheet feel on mobile */
 }
