@@ -196,6 +196,26 @@ elseif ($action == 'get_comments') {
     exit;
 }
 
+// ----------------------------- DELETE POST -----------------------------
+elseif ($action == 'delete_post') {
+    $postId = intval($_POST['postId']);
+    $userId = $_POST['userId']; // Need to verify ownership
+
+    // Check ownership
+    $check = $conn->query("SELECT id FROM posts WHERE id = $postId AND author_id = '$userId'");
+    if ($check->num_rows > 0) {
+        // Delete associated likes and comments first to prevent orphaned data
+        $conn->query("DELETE FROM likes WHERE post_id = $postId");
+        $conn->query("DELETE FROM comments WHERE post_id = $postId");
+        // Delete the post
+        $conn->query("DELETE FROM posts WHERE id = $postId");
+        echo json_encode(["status" => "success"]);
+    } else {
+        echo json_encode(["status" => "error", "message" => "Unauthorized to delete this post"]);
+    }
+    exit;
+}
+
 // If no action matched
 echo json_encode(["status" => "error", "message" => "Invalid action"]);
 ?>
