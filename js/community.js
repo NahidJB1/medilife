@@ -357,10 +357,24 @@ async function loadInteractions(postId, type) {
         list.innerHTML = filtered.length ? filtered.map(c => {
             const authorDisplay = c.author_role === 'doctor' ? 'Dr. ' + c.author_name : c.author_name;
             const color = c.author_role === 'doctor' ? '#16A34A' : 'var(--dark)';
+            
+            // Check if user owns the comment to show 3-dot menu
+            const isOwner = c.user_id === currentUser.uid;
+            const menuHtml = isOwner ? `
+                <div class="comment-options">
+                    <button class="comment-options-trigger" onclick="toggleCommentMenu(${c.id})"><i class="fas fa-ellipsis-v"></i></button>
+                    <div class="comment-dropdown" id="comment-menu-${c.id}">
+                        <button onclick="editCommentPrompt(${c.id}, '${c.content.replace(/'/g, "\\'")}', ${postId}, '${type}')"><i class="fas fa-pen"></i> Edit</button>
+                        <button class="text-danger" onclick="deleteComment(${c.id}, ${postId}, '${type}')"><i class="fas fa-trash"></i> Delete</button>
+                    </div>
+                </div>
+            ` : '';
+
             return `
-            <div class="single-comment">
+            <div class="single-comment" id="comment-el-${c.id}">
+                ${menuHtml}
                 <span class="comment-author" style="color:${color}">${authorDisplay}:</span>
-                <span>${c.content}</span>
+                <span class="comment-text-content">${c.content}</span>
             </div>`;
         }).join('') : `<div style="color:#9CA3AF; font-size: 0.9rem;">No ${type}s yet.</div>`;
     } catch (err) {
@@ -551,7 +565,61 @@ function hidePost(postId) {
 }
 
 function editPost(postId) {
-    showToast('Edit feature coming soon.');
+    const card = document.querySelector(`.post-card[data-post-id="${postId}"]`);
+    const contentEl = card.querySelector('.post-text');
+    const titleEl = card.querySelector('.post-content h3');
+    
+    document.getElementById('editPostId').value = postId;
+    document.getElementById('editPostContent').value = contentEl ? contentEl.innerText : '';
+    
+    const titleInput = document.getElementById('editPostTitle');
+    if (titleEl) {
+        titleInput.style.display = 'block';
+        titleInput.value = titleEl.innerText;
+    } else {
+        titleInput.style.display = 'none';
+        titleInput.value = '';
+    }
+    
+    document.getElementById('editPostModal').classList.add('active');
+    togglePostMenu(postId); // Close the 3-dot menu
+}
+
+function closeEditPostModal(e) {
+    if (e && e.target !== document.getElementById('editPostModal')) return;
+    document.getElementById('editPostModal').classList.remove('active');
+}
+
+async function submitEditPost() {
+    const postId = document.getElementById('editPostId').value;
+    const content = document.getElementById('editPostContent').value.trim();
+    const title = document.getElementById('editPostTitle').value.trim();
+    
+    if(!content) { showToast('Content cannot be empty'); return; }
+    
+    const formData = new FormData();
+    formData.append('action', 'edit_post');
+    formData.append('postId', postId);
+    formData.append('userId', currentUser.uid);
+    formData.append('content', content);
+    formData.append('title', title);
+    
+    try {
+        const res = await fetch(API_URL, { method: 'POST', body: formData });
+        const data = await res.json();
+        if(data.status === 'success') {
+            showToast('Post updated successfully!');
+            closeEditPostModal();
+            // Update the UI instantly without reloading the page
+            const card = document.querySelector(`.post-card[data-post-id="${postId}"]`);
+            if(card.querySelector('.post-text')) card.querySelector('.post-text').innerText = content;
+            if(card.querySelector('.post-content h3') && title) card.querySelector('.post-content h3').innerText = title;
+        } else {
+            showToast(data.message || 'Error updating post');
+        }
+    } catch (err) {
+        showToast('Network error');
+    }
 }
 
 function blockUser(userId) {
@@ -568,3 +636,131 @@ async function pinPost(postId) {
 function openProfile(userId) {
     showToast('Opening Profile... (Requires Phase 2 DB structures)');
 }
+
+// --- COMMENT MANAGEMENT ---
+function toggleCommentMenu(commentId) {
+    document.querySelectorAll('.comment-dropdown.show').forEach(el => {
+        if(el.id !== `comment-menu-${commentId}`) el.classList.remove('show');
+    });
+    document.getElementById(`comment-menu-${commentId}`).classList.toggle('show');
+}
+
+async function editCommentPrompt(commentId, oldContent, postId, type) {
+    toggleCommentMenu(commentId); 
+    const newContent = prompt('Edit your response:', oldContent);
+    if(newContent === null || newContent.trim() === '' || newContent === oldContent) return;
+    
+    const formData = new FormData();
+    formData.append('action', 'edit_comment');
+    formData.append('commentId', commentId);
+    formData.append('userId', currentUser.uid);
+    formData.append('content', newContent.trim());
+    
+    try {
+        const res = await fetch(API_URL, {method: 'POST', body: formData});
+        const data = await res.json();
+        if(data.status === 'success') {
+            document.querySelector(`#comment-el-${commentId} .comment-text-content`).innerText = newContent.trim();
+            showToast('Response updated');
+        } else showToast(data.message);
+    } catch(e) { showToast('Error updating'); }
+}
+
+async function deleteComment(commentId, postId, type) {
+    if(!confirm('Are you sure you want to delete this?')) return;
+    toggleCommentMenu(commentId);
+    
+    const formData = new FormData();
+    formData.append('action', 'delete_comment');
+    formData.append('commentId', commentId);
+    formData.append('postId', postId);
+    formData.append('userId', currentUser.uid);
+    
+    try {
+        const res = await fetch(API_URL, {method: 'POST', body: formData});
+        const data = await res.json();
+        if(data.status === 'success') {
+            document.getElementById(`comment-el-${commentId}`).remove();
+            if(type === 'comment') {
+                const countSpan = document.querySelector(`[onclick="toggleComments(${postId})"] .comment-count`);
+                if(countSpan) countSpan.innerText = Math.max(0, parseInt(countSpan.innerText) - 1);
+            }
+            showToast('Deleted successfully');
+        } else showToast(data.message);
+    } catch(e) { showToast('Error deleting'); }
+}
+
+// Close comment dropdowns if clicked outside
+document.addEventListener('click', (e) => {
+    if (!e.target.closest('.comment-options')) {
+        document.querySelectorAll('.comment-dropdown.show').forEach(el => el.classList.remove('show'));
+    }
+});
+
+// --- NOTIFICATIONS SYSTEM ---
+function toggleNotifications(e) {
+    e.preventDefault();
+    const dropdown = document.getElementById('notifDropdown');
+    dropdown.classList.toggle('show');
+    if(dropdown.classList.contains('show')) {
+        fetchNotifications();
+    }
+}
+
+async function fetchNotifications() {
+    try {
+        const res = await fetch(`${API_URL}?action=get_notifications&uid=${currentUser.uid}`);
+        const notifs = await res.json();
+        const dropdown = document.getElementById('notifDropdown');
+        
+        if(notifs.length === 0) {
+            dropdown.innerHTML = '<div style="padding: 15px; text-align: center; color: var(--gray);">No notifications yet.</div>';
+            document.getElementById('notifBadge').style.display = 'none';
+            return;
+        }
+        
+        const unreadCount = notifs.filter(n => n.is_read == 0).length;
+        const badge = document.getElementById('notifBadge');
+        if(unreadCount > 0) {
+            badge.innerText = unreadCount;
+            badge.style.display = 'block';
+        } else {
+            badge.style.display = 'none';
+        }
+        
+        dropdown.innerHTML = notifs.map(n => {
+            let text = '';
+            if(n.type === 'like') text = 'liked your post.';
+            if(n.type === 'comment') text = 'commented on your post.';
+            if(n.type === 'answer') text = 'answered your question.';
+            if(n.type === 'share') text = 'shared your post.';
+            
+            return `<div class="notification-item ${n.is_read == 0 ? 'unread' : ''}" onclick="markNotifRead(${n.id}, ${n.post_id})">
+                <strong>${n.sender_name}</strong> ${text}
+                <div style="font-size: 0.7rem; color: var(--gray); margin-top: 3px;">${timeAgo(n.created_at)}</div>
+            </div>`;
+        }).join('');
+    } catch (e) {
+        console.error("Notification fetch failed", e);
+    }
+}
+
+async function markNotifRead(notifId, postId) {
+    document.getElementById('notifDropdown').classList.remove('show');
+    
+    // Smooth scroll to the relevant post
+    const postCard = document.querySelector(`.post-card[data-post-id="${postId}"]`);
+    if(postCard) postCard.scrollIntoView({behavior: 'smooth', block: 'center'});
+    
+    const formData = new FormData();
+    formData.append('action', 'mark_notif_read');
+    formData.append('notifId', notifId);
+    await fetch(API_URL, {method: 'POST', body: formData});
+    
+    fetchNotifications(); // Refresh badge count
+}
+
+// Fetch unread count 1 second after page loads
+document.addEventListener('DOMContentLoaded', () => {
+    setTimeout(fetchNotifications, 1000);
+});
