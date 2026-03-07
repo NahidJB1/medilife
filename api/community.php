@@ -4,82 +4,198 @@ header('Content-Type: application/json');
 
 $action = $_REQUEST['action'] ?? '';
 
-// 1. GET POSTS
-if ($action == 'get') {
-    $result = $conn->query("SELECT * FROM posts ORDER BY created_at DESC LIMIT 20");
+// ----------------------------- GET FEED -----------------------------
+if ($action == 'get_feed') {
+    $uid = $_GET['uid'] ?? ''; // current user id for like/follow status
+    $limit = isset($_GET['limit']) ? intval($_GET['limit']) : 20;
+    $offset = isset($_GET['offset']) ? intval($_GET['offset']) : 0;
+
+    // Get posts from followed users + own posts, ordered by date
+    // For simplicity, we get all posts. You can implement follow filtering later.
+    $sql = "SELECT p.*, 
+            (SELECT COUNT(*) FROM likes WHERE post_id = p.id) AS likes_count,
+            (SELECT COUNT(*) FROM comments WHERE post_id = p.id) AS comments_count
+            FROM posts p
+            ORDER BY p.created_at DESC
+            LIMIT ? OFFSET ?";
+    $stmt = $conn->prepare($sql);
+    $stmt->bind_param("ii", $limit, $offset);
+    $stmt->execute();
+    $result = $stmt->get_result();
+
     $posts = [];
-    while($row = $result->fetch_assoc()) {
-        // Decode JSON strings back to Arrays for JS
-        $row['likes'] = json_decode($row['likes']) ?: [];
-        $row['comments'] = json_decode($row['comments']) ?: [];
-        
-        // Map SQL columns to JS expectations
-        $row['authorName'] = $row['author_name'];
-        $row['authorRole'] = $row['author_role'];
-        $row['timestamp'] = $row['created_at']; 
-        
+    while ($row = $result->fetch_assoc()) {
+        // Decode images JSON
+        $row['images'] = json_decode($row['images'], true) ?? [];
+
+        // If it's a share, fetch original post details
+        if ($row['type'] == 'share' && $row['original_post_id']) {
+            $orig = $conn->query("SELECT author_name, author_role, content, images FROM posts WHERE id = " . $row['original_post_id'])->fetch_assoc();
+            $row['original'] = $orig;
+        }
+
+        // Check if current user liked this post
+        if ($uid) {
+            $likeCheck = $conn->query("SELECT id FROM likes WHERE post_id = {$row['id']} AND user_id = '$uid'");
+            $row['liked_by_user'] = $likeCheck->num_rows > 0;
+        } else {
+            $row['liked_by_user'] = false;
+        }
+
+        // Check if current user follows the author
+        if ($uid) {
+            $followCheck = $conn->query("SELECT id FROM follows WHERE follower_uid = '$uid' AND followed_uid = '{$row['author_id']}'");
+            $row['followed_by_user'] = $followCheck->num_rows > 0;
+        } else {
+            $row['followed_by_user'] = false;
+        }
+
+        // Format date
+        $row['created_at'] = date('c', strtotime($row['created_at']));
+
         $posts[] = $row;
     }
+
     echo json_encode($posts);
+    exit;
 }
 
-// 2. CREATE POST
-elseif ($action == 'post') {
+// ----------------------------- CREATE POST (with images) -----------------------------
+elseif ($action == 'create_post') {
+    $authorId = $_POST['authorId'];
+    $authorName = $_POST['authorName'];
+    $authorRole = $_POST['authorRole'];
+    $type = $_POST['type']; // 'question' or 'article'
+    $title = $_POST['title'] ?? null;
     $content = $_POST['content'];
-    $name = $_POST['authorName'];
-    $role = $_POST['authorRole'];
-    $uid = $_POST['authorId'];
-    $emptyJson = '[]';
 
-    $stmt = $conn->prepare("INSERT INTO posts (author_id, author_name, author_role, content, likes, comments) VALUES (?, ?, ?, ?, ?, ?)");
-    $stmt->bind_param("ssssss", $uid, $name, $role, $content, $emptyJson, $emptyJson);
-    $stmt->execute();
+    // Handle image uploads
+    $imagePaths = [];
+    if (!empty($_FILES['images']['name'][0])) {
+        $targetDir = "../uploads/community/";
+        if (!file_exists($targetDir)) mkdir($targetDir, 0777, true);
+
+        foreach ($_FILES['images']['tmp_name'] as $key => $tmpName) {
+            $fileName = time() . "_" . basename($_FILES['images']['name'][$key]);
+            $targetFile = $targetDir . $fileName;
+            if (move_uploaded_file($tmpName, $targetFile)) {
+                $imagePaths[] = "uploads/community/" . $fileName;
+            }
+        }
+    }
+    $imagesJson = json_encode($imagePaths);
+
+    $stmt = $conn->prepare("INSERT INTO posts (author_id, author_name, author_role, type, title, content, images) VALUES (?, ?, ?, ?, ?, ?, ?)");
+    $stmt->bind_param("sssssss", $authorId, $authorName, $authorRole, $type, $title, $content, $imagesJson);
+    if ($stmt->execute()) {
+        echo json_encode(["status" => "success", "post_id" => $stmt->insert_id]);
+    } else {
+        echo json_encode(["status" => "error", "message" => $stmt->error]);
+    }
+    exit;
 }
 
-// 3. LIKE POST
+// ----------------------------- LIKE / UNLIKE -----------------------------
 elseif ($action == 'like') {
-    $id = $_POST['id'];
-    $uid = $_POST['uid'];
+    $postId = $_POST['postId'];
+    $userId = $_POST['userId'];
 
-    // Fetch current likes
-    $res = $conn->query("SELECT likes FROM posts WHERE id = $id");
-    $row = $res->fetch_assoc();
-    $likes = json_decode($row['likes'], true) ?: [];
-
-    // Toggle logic
-    if (in_array($uid, $likes)) {
-        $likes = array_diff($likes, [$uid]); // Remove
+    // Check if already liked
+    $check = $conn->query("SELECT id FROM likes WHERE post_id = $postId AND user_id = '$userId'");
+    if ($check->num_rows == 0) {
+        $conn->query("INSERT INTO likes (post_id, user_id) VALUES ($postId, '$userId')");
+        $conn->query("UPDATE posts SET likes_count = likes_count + 1 WHERE id = $postId");
+        echo json_encode(["status" => "liked"]);
     } else {
-        $likes[] = $uid; // Add
+        $conn->query("DELETE FROM likes WHERE post_id = $postId AND user_id = '$userId'");
+        $conn->query("UPDATE posts SET likes_count = likes_count - 1 WHERE id = $postId");
+        echo json_encode(["status" => "unliked"]);
+    }
+    exit;
+}
+
+// ----------------------------- COMMENT (or ANSWER) -----------------------------
+elseif ($action == 'comment') {
+    $postId = $_POST['postId'];
+    $userId = $_POST['userId'];
+    $authorName = $_POST['authorName'];
+    $authorRole = $_POST['authorRole'];
+    $content = $_POST['content'];
+    $type = $_POST['type'] ?? 'comment'; // 'comment' or 'answer'
+
+    $stmt = $conn->prepare("INSERT INTO comments (post_id, user_id, author_name, author_role, content, type) VALUES (?, ?, ?, ?, ?, ?)");
+    $stmt->bind_param("isssss", $postId, $userId, $authorName, $authorRole, $content, $type);
+    if ($stmt->execute()) {
+        $conn->query("UPDATE posts SET comments_count = comments_count + 1 WHERE id = $postId");
+        echo json_encode(["status" => "success", "comment_id" => $stmt->insert_id]);
+    } else {
+        echo json_encode(["status" => "error", "message" => $stmt->error]);
+    }
+    exit;
+}
+
+// ----------------------------- FOLLOW / UNFOLLOW -----------------------------
+elseif ($action == 'follow') {
+    $followerUid = $_POST['followerUid'];
+    $followedUid = $_POST['followedUid'];
+
+    $check = $conn->query("SELECT id FROM follows WHERE follower_uid = '$followerUid' AND followed_uid = '$followedUid'");
+    if ($check->num_rows == 0) {
+        $conn->query("INSERT INTO follows (follower_uid, followed_uid) VALUES ('$followerUid', '$followedUid')");
+        echo json_encode(["status" => "followed"]);
+    } else {
+        $conn->query("DELETE FROM follows WHERE follower_uid = '$followerUid' AND followed_uid = '$followedUid'");
+        echo json_encode(["status" => "unfollowed"]);
+    }
+    exit;
+}
+
+// ----------------------------- SHARE POST -----------------------------
+elseif ($action == 'share') {
+    $userId = $_POST['userId'];
+    $originalPostId = $_POST['originalPostId'];
+
+    // Get original post details
+    $orig = $conn->query("SELECT author_id, author_name, author_role, content, images FROM posts WHERE id = $originalPostId")->fetch_assoc();
+    if (!$orig) {
+        echo json_encode(["status" => "error", "message" => "Original post not found"]);
+        exit;
     }
 
-    $newJson = json_encode(array_values($likes));
-    $stmt = $conn->prepare("UPDATE posts SET likes = ? WHERE id = ?");
-    $stmt->bind_param("si", $newJson, $id);
-    $stmt->execute();
+    // Get current user details
+    $user = $conn->query("SELECT name, role FROM users WHERE uid = '$userId'")->fetch_assoc();
+    if (!$user) {
+        echo json_encode(["status" => "error", "message" => "User not found"]);
+        exit;
+    }
+
+    // Create share post
+    $shareContent = "shared a post"; // You can customize
+    $stmt = $conn->prepare("INSERT INTO posts (author_id, author_name, author_role, type, content, original_post_id) VALUES (?, ?, ?, 'share', ?, ?)");
+    $stmt->bind_param("ssssi", $userId, $user['name'], $user['role'], $shareContent, $originalPostId);
+    if ($stmt->execute()) {
+        // Increment shares count on original post
+        $conn->query("UPDATE posts SET shares_count = shares_count + 1 WHERE id = $originalPostId");
+        echo json_encode(["status" => "success"]);
+    } else {
+        echo json_encode(["status" => "error", "message" => $stmt->error]);
+    }
+    exit;
 }
 
-// 4. COMMENT POST
-elseif ($action == 'comment') {
-    $id = $_POST['id'];
-    $text = $_POST['text'];
-    $author = $_POST['author'];
-    $role = $_POST['role']; // e.g. 'doctor'
-
-    $res = $conn->query("SELECT comments FROM posts WHERE id = $id");
-    $row = $res->fetch_assoc();
-    $comments = json_decode($row['comments'], true) ?: [];
-
-    $newComment = [
-        "text" => $text,
-        "author" => $author,
-        "role" => $role
-    ];
-    $comments[] = $newComment;
-
-    $newJson = json_encode($comments);
-    $stmt = $conn->prepare("UPDATE posts SET comments = ? WHERE id = ?");
-    $stmt->bind_param("si", $newJson, $id);
-    $stmt->execute();
+// ----------------------------- GET COMMENTS FOR A POST -----------------------------
+elseif ($action == 'get_comments') {
+    $postId = $_GET['postId'];
+    $result = $conn->query("SELECT * FROM comments WHERE post_id = $postId ORDER BY created_at ASC");
+    $comments = [];
+    while ($row = $result->fetch_assoc()) {
+        $row['created_at'] = date('c', strtotime($row['created_at']));
+        $comments[] = $row;
+    }
+    echo json_encode($comments);
+    exit;
 }
+
+// If no action matched
+echo json_encode(["status" => "error", "message" => "Invalid action"]);
 ?>
