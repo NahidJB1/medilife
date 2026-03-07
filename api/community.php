@@ -249,6 +249,89 @@ elseif ($action == 'delete_post') {
     exit;
 }
 
+
+// ----------------------------- EDIT POST -----------------------------
+elseif ($action == 'edit_post') {
+    $postId = intval($_POST['postId']);
+    $userId = $_POST['userId'];
+    $content = $_POST['content'];
+    $title = $_POST['title'];
+
+    $check = $conn->query("SELECT id FROM posts WHERE id = $postId AND author_id = '$userId'");
+    if ($check->num_rows > 0) {
+        $stmt = $conn->prepare("UPDATE posts SET content = ?, title = ? WHERE id = ?");
+        $stmt->bind_param("ssi", $content, $title, $postId);
+        if($stmt->execute()) echo json_encode(["status" => "success"]);
+        else echo json_encode(["status" => "error", "message" => "Database update failed"]);
+    } else {
+        echo json_encode(["status" => "error", "message" => "Unauthorized to edit this post"]);
+    }
+    exit;
+}
+
+// ----------------------------- EDIT / DELETE COMMENT -----------------------------
+elseif ($action == 'edit_comment') {
+    $commentId = intval($_POST['commentId']);
+    $userId = $_POST['userId'];
+    $content = $_POST['content'];
+    
+    $check = $conn->query("SELECT id FROM comments WHERE id = $commentId AND user_id = '$userId'");
+    if ($check->num_rows > 0) {
+        $stmt = $conn->prepare("UPDATE comments SET content = ? WHERE id = ?");
+        $stmt->bind_param("si", $content, $commentId);
+        if($stmt->execute()) echo json_encode(["status" => "success"]);
+        else echo json_encode(["status" => "error"]);
+    } else {
+        echo json_encode(["status" => "error", "message" => "Unauthorized"]);
+    }
+    exit;
+}
+
+elseif ($action == 'delete_comment') {
+    $commentId = intval($_POST['commentId']);
+    $postId = intval($_POST['postId']);
+    $userId = $_POST['userId'];
+    
+    $check = $conn->query("SELECT id FROM comments WHERE id = $commentId AND user_id = '$userId'");
+    if ($check->num_rows > 0) {
+        $conn->query("DELETE FROM comments WHERE id = $commentId");
+        // Decrease comment count safely (preventing negative numbers)
+        $conn->query("UPDATE posts SET comments_count = GREATEST(0, comments_count - 1) WHERE id = $postId");
+        echo json_encode(["status" => "success"]);
+    } else {
+        echo json_encode(["status" => "error", "message" => "Unauthorized"]);
+    }
+    exit;
+}
+
+// ----------------------------- GET & MARK NOTIFICATIONS -----------------------------
+elseif ($action == 'get_notifications') {
+    $uid = $_GET['uid'];
+    
+    // Join with users table to get the sender's actual name
+    $sql = "SELECT n.*, u.name as sender_name 
+            FROM notifications n 
+            JOIN users u ON n.sender_uid = u.uid 
+            WHERE n.recipient_uid = '$uid' 
+            ORDER BY n.created_at DESC LIMIT 30";
+    
+    $result = $conn->query($sql);
+    $notifs = [];
+    while ($row = $result->fetch_assoc()) {
+        $row['created_at'] = date('c', strtotime($row['created_at']));
+        $notifs[] = $row;
+    }
+    echo json_encode($notifs);
+    exit;
+}
+
+elseif ($action == 'mark_notif_read') {
+    $notifId = intval($_POST['notifId']);
+    $conn->query("UPDATE notifications SET is_read = 1 WHERE id = $notifId");
+    echo json_encode(["status" => "success"]);
+    exit;
+}
+
 // If no action matched
 echo json_encode(["status" => "error", "message" => "Invalid action"]);
 ?>
