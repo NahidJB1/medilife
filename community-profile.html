@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
+    <title>Profile | MEDeLIFE</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="css/community.css"> <link rel="stylesheet" href="css/profile.css">
+</head>
+<body>
+    <nav class="navbar">
+        <a href="dashboard.html" id="navLogo" class="logo-container">
+            <svg width="35" height="35" viewBox="0 0 100 100"><rect x="35" y="10" width="30" height="80" rx="5" fill="#EF4444" /><rect x="10" y="35" width="80" height="30" rx="5" fill="#EF4444" /></svg>
+            <div style="font-family: 'Poppins', sans-serif; font-size: 20px; font-weight: 700;">
+                <span style="color: #EF4444;">MED</span><span style="color: #000;">e</span><span style="color: #22C55E;">LIFE</span>
+            </div>
+        </a>
+        <ul class="nav-links">
+            <li><a href="dashboard.html" title="Dashboard"><i class="fas fa-home"></i></a></li>
+            <li><a href="community.html" title="Community"><i class="fas fa-users"></i></a></li>
+            <li><a href="#" class="active" title="Profile"><i class="fas fa-user-circle"></i></a></li>
+        </ul>
+    </nav>
+
+    <div class="main-container profile-container">
+        <div class="profile-header-card animate-fade-in">
+            <div class="cover-photo"></div>
+            <div class="profile-info-wrapper">
+                <div class="profile-avatar-large"><i class="fas fa-user"></i></div>
+                <div class="profile-actions" id="profileActionsBox">
+                    </div>
+            </div>
+            <div class="profile-text-details">
+                <h1 id="profileName">Loading...</h1>
+                <span class="role-badge" id="profileRole">Role</span>
+                <p class="profile-bio" id="profileBio"></p>
+                
+                <div class="profile-meta-grid" id="profileMetaGrid">
+                    </div>
+                
+                <div class="social-links-bar" id="profileSocialLinks">
+                    </div>
+            </div>
+        </div>
+
+        <div class="feed-header">
+            <h3><i class="fas fa-stream"></i> Wall Posts</h3>
+        </div>
+        <div id="feedContainer">
+            <div class="loading-spinner"><i class="fas fa-spinner fa-spin"></i> Loading timeline...</div>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="editProfileModal">
+        <div class="modal-content">
+            <div class="modal-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; border-bottom: 1px solid #eee; padding-bottom: 10px;">
+                <h2>Edit Profile</h2>
+                <button class="btn-close" onclick="closeEditModal()" style="background: none; border: none; font-size: 1.2rem; cursor: pointer;"><i class="fas fa-times"></i></button>
+            </div>
+            
+            <div class="form-group">
+                <label>Bio</label>
+                <textarea id="editBio" rows="3" placeholder="Tell the community about yourself..."></textarea>
+            </div>
+            
+            <div class="form-group-flex">
+                <div class="flex-input">
+                    <label>Location</label>
+                    <input type="text" id="editLocation" placeholder="e.g. Kuala Lumpur">
+                </div>
+                <select id="privLocation" class="privacy-select"><option value="public">Public</option><option value="private">Only Me</option></select>
+            </div>
+            
+            <div class="form-group-flex">
+                <div class="flex-input">
+                    <label>Education</label>
+                    <input type="text" id="editEducation" placeholder="e.g. City University Malaysia">
+                </div>
+                <select id="privEducation" class="privacy-select"><option value="public">Public</option><option value="private">Only Me</option></select>
+            </div>
+
+            <div class="form-group-flex">
+                <div class="flex-input">
+                    <label>Profession</label>
+                    <input type="text" id="editProfession" placeholder="e.g. Software Developer">
+                </div>
+                <select id="privProfession" class="privacy-select"><option value="public">Public</option><option value="private">Only Me</option></select>
+            </div>
+            
+            <div class="form-group-flex">
+                <div class="flex-input">
+                    <label><i class="fab fa-facebook" style="color:#1877F2"></i> Facebook Link</label>
+                    <input type="text" id="editFb" placeholder="https://facebook.com/yourprofile">
+                </div>
+            </div>
+            <div class="form-group-flex">
+                <div class="flex-input">
+                    <label><i class="fab fa-instagram" style="color:#E4405F"></i> Instagram Link</label>
+                    <input type="text" id="editInsta" placeholder="https://instagram.com/yourprofile">
+                </div>
+            </div>
+            <div class="form-group-flex" style="margin-bottom: 20px;">
+                <div class="flex-input">
+                    <label><i class="fab fa-x-twitter"></i> X (Twitter) Link</label>
+                    <input type="text" id="editX" placeholder="https://x.com/yourprofile">
+                </div>
+                <select id="privSocial" class="privacy-select" style="align-self: flex-end; margin-bottom: 2px;"><option value="public">Public Links</option><option value="private">Only Me</option></select>
+            </div>
+
+            <button class="btn-post" onclick="saveProfile()" style="width:100%;">Save Changes</button>
+        </div>
+    </div>
+
+    <div id="toast-box"><i class="fas fa-info-circle"></i> <span id="toast-msg"></span></div>
+
+    <script src="js/community.js"></script>
+    <script src="js/profile.js"></script>
+</body>
+</html>
