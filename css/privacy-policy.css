@@ -1,0 +1,137 @@
+/* css/privacy-policy.css */
+
+html {
+    scroll-behavior: smooth;
+}
+
+.policy-container {
+    display: flex;
+    max-width: 1200px;
+    margin: 50px auto;
+    padding: 0 20px;
+    gap: 50px;
+}
+
+/* --- Desktop Sidebar --- */
+.policy-sidebar {
+    flex: 0 0 250px;
+    position: sticky;
+    top: 100px;
+    height: fit-content;
+}
+
+.policy-sidebar .nav-link {
+    display: block;
+    padding: 12px 16px;
+    color: #6c757d;
+    text-decoration: none;
+    font-weight: 500;
+    border-left: 3px solid transparent;
+    transition: all 0.3s ease-in-out;
+    margin-bottom: 5px;
+    border-radius: 0 6px 6px 0;
+}
+
+.policy-sidebar .nav-link:hover, 
+.policy-sidebar .nav-link.active {
+    color: #0056b3; /* Adjust to match your MEDeLIFE primary color */
+    border-left-color: #0056b3;
+    background: rgba(0, 86, 179, 0.05);
+    transform: translateX(6px);
+}
+
+/* --- Content & Animations --- */
+.policy-content {
+    flex: 1;
+}
+
+.policy-header h1 {
+    font-size: 2.5rem;
+    margin-bottom: 10px;
+    color: #333;
+}
+
+.policy-section {
+    margin-top: 40px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid #eaeaea;
+    opacity: 0;
+    transform: translateY(20px);
+    animation: fadeInUp 0.6s forwards ease-out;
+}
+
+.policy-section h2 {
+    font-size: 1.4rem;
+    color: #222;
+    transition: color 0.3s ease;
+}
+
+.accordion-content {
+    margin-top: 15px;
+    line-height: 1.7;
+    color: #555;
+    transition: max-height 0.4s ease-in-out, opacity 0.4s ease-in-out;
+}
+
+.accordion-content ul {
+    padding-left: 20px;
+}
+
+.accordion-content li {
+    margin-bottom: 10px;
+}
+
+@keyframes fadeInUp {
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* --- Mobile Accordion Conversion --- */
+@media (max-width: 768px) {
+    .policy-container {
+        flex-direction: column;
+        margin: 30px auto;
+        gap: 20px;
+    }
+    
+    .policy-sidebar {
+        display: none; /* Hide sidebar completely on mobile */
+    }
+
+    .policy-section h2 {
+        cursor: pointer;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 10px 0;
+    }
+
+    /* Accordion Plus Icon */
+    .policy-section h2::after {
+        content: '+';
+        font-size: 1.8rem;
+        font-weight: 300;
+        transition: transform 0.3s ease;
+    }
+
+    .accordion-content {
+        max-height: 0;
+        opacity: 0;
+        overflow: hidden;
+        margin-top: 0;
+    }
+
+    /* Active Accordion State */
+    .policy-section.active .accordion-content {
+        max-height: 800px;
+        opacity: 1;
+        margin-top: 10px;
+    }
+
+    .policy-section.active h2::after {
+        transform: rotate(45deg);
+        color: #0056b3;
+    }
+}
