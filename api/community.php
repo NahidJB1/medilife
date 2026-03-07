@@ -4,6 +4,23 @@ header('Content-Type: application/json');
 
 $action = $_REQUEST['action'] ?? '';
 
+// Helper function to create notifications
+function createNotification($conn, $post_id, $sender_uid, $type) {
+    // Get the recipient (author of the post)
+    $query = $conn->query("SELECT author_id FROM posts WHERE id = $post_id");
+    if ($query->num_rows > 0) {
+        $post = $query->fetch_assoc();
+        $recipient_uid = $post['author_id'];
+        
+        // Don't send a notification if the user interacts with their own post
+        if ($recipient_uid !== $sender_uid) {
+            $stmt = $conn->prepare("INSERT INTO notifications (recipient_uid, sender_uid, type, post_id) VALUES (?, ?, ?, ?)");
+            $stmt->bind_param("sssi", $recipient_uid, $sender_uid, $type, $post_id);
+            $stmt->execute();
+        }
+    }
+}
+
 // ----------------------------- GET FEED -----------------------------
 if ($action == 'get_feed') {
     $uid = $_GET['uid'] ?? ''; // current user id for like/follow status
@@ -97,7 +114,7 @@ elseif ($action == 'create_post') {
 
 // ----------------------------- LIKE / UNLIKE -----------------------------
 elseif ($action == 'like') {
-    $postId = $_POST['postId'];
+    $postId = intval($_POST['postId']);
     $userId = $_POST['userId'];
 
     // Check if already liked
@@ -105,6 +122,10 @@ elseif ($action == 'like') {
     if ($check->num_rows == 0) {
         $conn->query("INSERT INTO likes (post_id, user_id) VALUES ($postId, '$userId')");
         $conn->query("UPDATE posts SET likes_count = likes_count + 1 WHERE id = $postId");
+        
+        // NEW: Trigger Notification
+        createNotification($conn, $postId, $userId, 'like');
+        
         echo json_encode(["status" => "liked"]);
     } else {
         $conn->query("DELETE FROM likes WHERE post_id = $postId AND user_id = '$userId'");
@@ -116,17 +137,25 @@ elseif ($action == 'like') {
 
 // ----------------------------- COMMENT (or ANSWER) -----------------------------
 elseif ($action == 'comment') {
-    $postId = $_POST['postId'];
+    $postId = intval($_POST['postId']);
     $userId = $_POST['userId'];
     $authorName = $_POST['authorName'];
     $authorRole = $_POST['authorRole'];
     $content = $_POST['content'];
     $type = $_POST['type'] ?? 'comment'; // 'comment' or 'answer'
+    
+    // Default parent_id to NULL for standard comments (requires Phase 2 frontend update to utilize)
+    $parentId = isset($_POST['parentId']) ? intval($_POST['parentId']) : NULL;
 
-    $stmt = $conn->prepare("INSERT INTO comments (post_id, user_id, author_name, author_role, content, type) VALUES (?, ?, ?, ?, ?, ?)");
-    $stmt->bind_param("isssss", $postId, $userId, $authorName, $authorRole, $content, $type);
+    $stmt = $conn->prepare("INSERT INTO comments (post_id, parent_id, user_id, author_name, author_role, content, type) VALUES (?, ?, ?, ?, ?, ?, ?)");
+    $stmt->bind_param("iisssss", $postId, $parentId, $userId, $authorName, $authorRole, $content, $type);
+    
     if ($stmt->execute()) {
         $conn->query("UPDATE posts SET comments_count = comments_count + 1 WHERE id = $postId");
+        
+        // NEW: Trigger Notification
+        createNotification($conn, $postId, $userId, $type);
+        
         echo json_encode(["status" => "success", "comment_id" => $stmt->insert_id]);
     } else {
         echo json_encode(["status" => "error", "message" => $stmt->error]);
@@ -176,6 +205,10 @@ elseif ($action == 'share') {
     if ($stmt->execute()) {
         // Increment shares count on original post
         $conn->query("UPDATE posts SET shares_count = shares_count + 1 WHERE id = $originalPostId");
+        
+        // NEW: Trigger Notification
+        createNotification($conn, $originalPostId, $userId, 'share');
+        
         echo json_encode(["status" => "success"]);
     } else {
         echo json_encode(["status" => "error", "message" => $stmt->error]);
