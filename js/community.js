@@ -1,322 +1,413 @@
-// --- 1. SETUP & MOCK STATE ---
+// community.js
+const API_URL = 'api/community.php'; // Adjust path if needed
+
 let currentUser = null;
 let currentPostType = 'question';
-let tempImages = []; // Stores images before posting
+let feedOffset = 0;
+let loading = false;
+let hasMore = true;
 
-// Mocking the feed so the UI works immediately before you connect PHP
-let posts = []; 
-
-document.addEventListener("DOMContentLoaded", () => {
+document.addEventListener('DOMContentLoaded', () => {
     initCommunity();
 });
 
 function initCommunity() {
     const role = localStorage.getItem('userRole') || 'patient';
     const name = localStorage.getItem('userName') || 'User';
-    const uid = localStorage.getItem('userUid') || 'u123'; 
+    const uid = localStorage.getItem('userUid');
 
-    currentUser = { name, role, uid, following: [] };
+    if (!localStorage.getItem('isLoggedIn')) {
+        window.location.href = 'login.html';
+        return;
+    }
 
-    // Set Navigation Link
+    currentUser = { name, role, uid };
+
+    // Set logo link
     const logoLink = document.getElementById('navLogo');
-    if(logoLink) {
-        if(role === 'doctor') logoLink.href = 'doctor-dashboard.html';
+    if (logoLink) {
+        if (role === 'doctor') logoLink.href = 'doctor-dashboard.html';
         else if (role === 'pharmacy') logoLink.href = 'pharmacy-dashboard.html';
         else logoLink.href = 'patient-dashboard.html';
     }
 
-    // Doctor specific UI
+    // Show article tab only for doctors
     if (role === 'doctor') {
         document.getElementById('tabArticle').classList.remove('hidden');
     }
 
-    renderFeed(); // Initial render
+    // Image upload preview
+    document.getElementById('postImages').addEventListener('change', handleImagePreview);
+
+    // Load initial feed
+    loadFeed(true);
 }
 
-// --- 2. POSTING & MEDIA LOGIC ---
+// ------------------- POST CREATION -------------------
 function setPostType(type) {
     currentPostType = type;
-    const titleInput = document.getElementById('postTitle');
-    const contentInput = document.getElementById('postContent');
-    const tabs = document.querySelectorAll('.cp-tab');
-
-    tabs.forEach(t => t.classList.remove('active'));
-    
+    document.getElementById('postTitle').classList.toggle('active', type === 'article');
+    document.getElementById('postContent').placeholder = type === 'article' 
+        ? 'Write your medical article content here...' 
+        : 'What health question is on your mind?';
+    document.querySelectorAll('.cp-tab').forEach(t => t.classList.remove('active'));
     if (type === 'article') {
         document.getElementById('tabArticle').classList.add('active');
-        titleInput.classList.add('active');
-        contentInput.placeholder = "Write your medical article. You can attach multiple photos below.";
-        contentInput.rows = 6;
     } else {
-        tabs[0].classList.add('active');
-        titleInput.classList.remove('active');
-        contentInput.placeholder = "What health question is on your mind?";
-        contentInput.rows = 3;
+        document.querySelector('.cp-tab').classList.add('active');
     }
 }
 
-function previewImages() {
-    const input = document.getElementById('imageInput');
-    const container = document.getElementById('imagePreviewContainer');
-    
-    for (let file of input.files) {
+function handleImagePreview(e) {
+    const preview = document.getElementById('imagePreview');
+    preview.innerHTML = '';
+    const files = e.target.files;
+    for (let i = 0; i < files.length; i++) {
         const reader = new FileReader();
-        reader.onload = function(e) {
-            tempImages.push(e.target.result);
+        reader.onload = (e) => {
             const img = document.createElement('img');
             img.src = e.target.result;
-            img.className = 'img-preview';
-            container.appendChild(img);
-        }
-        reader.readAsDataURL(file);
+            preview.appendChild(img);
+        };
+        reader.readAsDataURL(files[i]);
     }
 }
 
-function submitPost() {
+async function submitPost() {
     const content = document.getElementById('postContent').value.trim();
     const title = document.getElementById('postTitle').value.trim();
+    const images = document.getElementById('postImages').files;
 
-    if (!content) { showToast("Please write something!"); return; }
-    if (currentPostType === 'article' && !title) { showToast("Articles need a title."); return; }
+    if (!content) { showToast('Please write something!'); return; }
+    if (currentPostType === 'article' && !title) { showToast('Articles need a title.'); return; }
 
-    const newPost = {
-        id: 'post_' + Date.now(),
-        authorName: currentUser.name,
-        authorRole: currentUser.role,
-        authorId: currentUser.uid,
-        content: content,
-        title: currentPostType === 'article' ? title : null,
-        type: currentPostType,
-        images: [...tempImages],
-        timestamp: new Date(),
-        likes: [],
-        dislikes: [],
-        shares: 0,
-        replies: [] // Mixed array of comments and answers
-    };
-
-    posts.unshift(newPost); // Add to top of local array
-    
-    // Clear UI
-    document.getElementById('postContent').value = '';
-    document.getElementById('postTitle').value = '';
-    document.getElementById('imagePreviewContainer').innerHTML = '';
-    tempImages = [];
-    document.getElementById('imageInput').value = '';
-    
-    showToast("Post published successfully!");
-    setPostType('question'); 
-    renderFeed();
-}
-
-// --- 3. RENDERING THE FEED ---
-function renderFeed() {
-    const feed = document.getElementById('feedContainer');
-    feed.innerHTML = '';
-
-    if(posts.length === 0) {
-        feed.innerHTML = '<div style="text-align:center; padding:40px; color:var(--gray);">No posts yet. Be the first to start a discussion!</div>';
-        return;
+    const formData = new FormData();
+    formData.append('action', 'create_post');
+    formData.append('authorId', currentUser.uid);
+    formData.append('authorName', currentUser.name);
+    formData.append('authorRole', currentUser.role);
+    formData.append('type', currentPostType);
+    if (title) formData.append('title', title);
+    formData.append('content', content);
+    for (let i = 0; i < images.length; i++) {
+        formData.append('images[]', images[i]);
     }
 
-    posts.forEach(post => {
-        const isLiked = post.likes.includes(currentUser.uid);
-        const isDisliked = post.dislikes.includes(currentUser.uid);
-        const isFollowing = currentUser.following.includes(post.authorId);
-        
-        let badgeClass = post.authorRole === 'doctor' ? 'role-doctor' : (post.authorRole === 'pharmacy' ? 'role-pharmacy' : 'role-patient');
-        let tagLabel = post.type === 'article' ? '<span class="topic-tag" style="background:#FEF2F2; color:#EF4444">Article</span>' : '<span class="topic-tag" style="background:#E0F2FE; color:#0284C7">Question</span>';
-        let titleHtml = post.title ? `<h3>${post.title}</h3>` : '';
-
-        // Follow Button Logic (Don't show on own posts)
-        let followBtnHtml = post.authorId !== currentUser.uid 
-            ? `<button class="btn-follow ${isFollowing ? 'following' : ''}" onclick="toggleFollow('${post.authorId}')">${isFollowing ? 'Following' : 'Follow'}</button>` 
-            : '';
-
-        // Media Parsing
-        let mediaHtml = '';
-        if (post.images && post.images.length > 0) {
-            mediaHtml += `<div class="post-media" id="media-${post.id}">`;
-            post.images.forEach((imgSrc, index) => {
-                let hiddenClass = index > 0 ? 'hidden-media' : '';
-                mediaHtml += `<img src="${imgSrc}" class="post-img ${hiddenClass}">`;
-            });
-            mediaHtml += `</div>`;
+    try {
+        const res = await fetch(API_URL, { method: 'POST', body: formData });
+        const data = await res.json();
+        if (data.status === 'success') {
+            document.getElementById('postContent').value = '';
+            document.getElementById('postTitle').value = '';
+            document.getElementById('postImages').value = '';
+            document.getElementById('imagePreview').innerHTML = '';
+            setPostType('question');
+            showToast('Post published!');
+            // Reload feed
+            feedOffset = 0;
+            document.getElementById('feedContainer').innerHTML = '<div class="loading-spinner"><i class="fas fa-spinner fa-spin"></i> Loading...</div>';
+            loadFeed(true);
+        } else {
+            showToast('Error: ' + data.message);
         }
+    } catch (err) {
+        showToast('Network error');
+        console.error(err);
+    }
+}
 
-        // Determine input placeholder based on role and post type
-        let replyPlaceholder = "Write a comment...";
-        let isAnswerMode = false;
-        if (currentUser.role === 'doctor' && post.type === 'question') {
-            replyPlaceholder = "Provide a medical answer...";
-            isAnswerMode = true;
+// ------------------- FEED -------------------
+async function loadFeed(reset = false) {
+    if (loading) return;
+    if (reset) {
+        feedOffset = 0;
+        hasMore = true;
+        document.getElementById('feedContainer').innerHTML = '';
+    }
+    if (!hasMore) return;
+
+    loading = true;
+    const url = `${API_URL}?action=get_feed&uid=${currentUser.uid}&limit=10&offset=${feedOffset}`;
+    try {
+        const res = await fetch(url);
+        const posts = await res.json();
+        if (posts.length < 10) hasMore = false;
+
+        const feed = document.getElementById('feedContainer');
+        posts.forEach(post => feed.appendChild(createPostElement(post)));
+
+        feedOffset += posts.length;
+    } catch (err) {
+        showToast('Failed to load feed');
+        console.error(err);
+    } finally {
+        loading = false;
+    }
+}
+
+// Infinite scroll
+window.addEventListener('scroll', () => {
+    if (window.innerHeight + window.scrollY >= document.body.offsetHeight - 500) {
+        loadFeed();
+    }
+});
+
+function createPostElement(post) {
+    const div = document.createElement('div');
+    div.className = 'post-card';
+    div.dataset.postId = post.id;
+
+    // Badge class
+    let badgeClass = 'role-patient';
+    if (post.author_role === 'doctor') badgeClass = 'role-doctor';
+    if (post.author_role === 'pharmacy') badgeClass = 'role-pharmacy';
+
+    // Tag
+    let tagLabel = post.type === 'article' 
+        ? '<span class="post-tag">Article</span>' 
+        : '<span class="post-tag" style="background:#E0F2FE; color:#0284C7">Question</span>';
+
+    // Title
+    let titleHtml = post.title ? `<h3>${post.title}</h3>` : '';
+
+    // Images
+    let imagesHtml = '';
+    if (post.images && post.images.length > 0) {
+        const firstImage = post.images[0];
+        const moreCount = post.images.length - 1;
+        imagesHtml = `<div class="post-images ${post.images.length > 1 ? 'multiple' : 'single'}" data-full="false">`;
+        imagesHtml += `<img src="${firstImage}" alt="post image" onclick="expandImages(this, ${post.id})">`;
+        if (moreCount > 0) {
+            imagesHtml += `<div class="more-overlay" onclick="expandImages(this, ${post.id})">+${moreCount} more</div>`;
         }
+        imagesHtml += '</div>';
+    }
 
-        const div = document.createElement('div');
-        div.className = 'post-card';
-        div.innerHTML = `
-            <div class="post-header">
-                <div class="user-info">
-                    <div class="avatar"><i class="fas fa-user"></i></div>
-                    <div class="meta">
-                        <h4>${post.authorName} <span class="role-badge ${badgeClass}">${post.authorRole.toUpperCase()}</span></h4>
-                        <span>${formatDate(post.timestamp)}</span>
-                    </div>
-                </div>
-                ${followBtnHtml}
-            </div>
-            
-            <div class="post-content">
-                ${tagLabel}
-                ${titleHtml}
-                <div class="text-body text-truncated" id="text-${post.id}">${post.content}</div>
-                <button class="btn-see-more" id="btn-more-${post.id}" onclick="expandPost('${post.id}')">See More</button>
-                ${mediaHtml}
-            </div>
+    // Follow button (don't show for own posts)
+    let followBtn = '';
+    if (post.author_id !== currentUser.uid) {
+        followBtn = `<button class="action-btn follow-btn ${post.followed_by_user ? 'following' : ''}" onclick="toggleFollow('${post.author_id}', this)">
+            <i class="fas ${post.followed_by_user ? 'fa-user-check' : 'fa-user-plus'}"></i> ${post.followed_by_user ? 'Following' : 'Follow'}
+        </button>`;
+    }
 
-            <div class="interaction-bar">
-                <button class="action-btn ${isLiked ? 'active-like' : ''}" onclick="toggleLike('${post.id}')">
-                    <i class="fa-thumbs-up ${isLiked ? 'fas' : 'far'}"></i> ${post.likes.length}
-                </button>
-                <button class="action-btn ${isDisliked ? 'active-dislike' : ''}" onclick="toggleDislike('${post.id}')">
-                    <i class="fa-thumbs-down ${isDisliked ? 'fas' : 'far'}"></i> ${post.dislikes.length}
-                </button>
-                <button class="action-btn" onclick="toggleSection('discussion-${post.id}')">
-                    <i class="far fa-comment-dots"></i> ${post.replies.length}
-                </button>
-                <button class="action-btn" onclick="sharePost('${post.id}')">
-                    <i class="fa-solid fa-share"></i> ${post.shares} Share
-                </button>
-            </div>
+    // Share button
+    const shareBtn = `<button class="action-btn" onclick="sharePost(${post.id})"><i class="fas fa-share"></i> Share</button>`;
 
-            <div id="discussion-${post.id}" class="discussion-section">
-                <div class="input-box">
-                    <input type="text" id="input-${post.id}" placeholder="${replyPlaceholder}">
-                    <button class="btn-send" onclick="submitReply('${post.id}', ${isAnswerMode})"><i class="fas fa-paper-plane"></i></button>
-                </div>
-                <div class="discussion-list">
-                    ${renderReplies(post.replies)}
+    // Interaction bar
+    const likeBtn = `<button class="action-btn ${post.liked_by_user ? 'liked' : ''}" onclick="toggleLike(${post.id}, this)">
+        <i class="${post.liked_by_user ? 'fas' : 'far'} fa-heart"></i> <span class="like-count">${post.likes_count}</span> Likes
+    </button>`;
+    const commentBtn = `<button class="action-btn" onclick="toggleComments(${post.id})">
+        <i class="far fa-comment"></i> <span class="comment-count">${post.comments_count}</span> Comments
+    </button>`;
+
+    div.innerHTML = `
+        <div class="post-header">
+            <div class="user-info">
+                <div class="avatar"><i class="fas fa-user"></i></div>
+                <div class="meta">
+                    <h4>${post.author_name} <span class="role-badge ${badgeClass}">${post.author_role.toUpperCase()}</span></h4>
+                    <span>${timeAgo(post.created_at)}</span>
                 </div>
             </div>
-        `;
-        feed.appendChild(div);
+            ${followBtn}
+        </div>
+        <div class="post-content">
+            ${tagLabel}
+            ${titleHtml}
+            <div class="post-text truncated" id="text-${post.id}">${post.content}</div>
+            <button class="see-more-btn" onclick="toggleText(${post.id})">See more</button>
+            ${imagesHtml}
+        </div>
+        <div class="interaction-bar">
+            ${likeBtn}
+            ${commentBtn}
+            ${shareBtn}
+        </div>
+        <div id="comments-${post.id}" class="comments-section">
+            <div class="comment-tabs">
+                <span class="comment-tab active" onclick="loadComments(${post.id}, 'comment')">Comments</span>
+                ${currentUser.role === 'doctor' ? '<span class="comment-tab" onclick="loadComments(' + post.id + ', \'answer\')">Answers</span>' : ''}
+            </div>
+            <div class="comment-input-box">
+                <input type="text" id="comment-input-${post.id}" placeholder="Write a comment...">
+                <button class="btn-send" onclick="submitComment(${post.id})"><i class="fas fa-paper-plane"></i></button>
+            </div>
+            <div class="comment-list" id="comment-list-${post.id}"></div>
+        </div>
+    `;
 
-        // Hide "See More" if text is short and there is only 0 or 1 image
-        setTimeout(() => {
-            const textEl = document.getElementById(`text-${post.id}`);
-            const btnEl = document.getElementById(`btn-more-${post.id}`);
-            const hasHiddenImages = post.images && post.images.length > 1;
-            
-            if (textEl.scrollHeight <= textEl.clientHeight && !hasHiddenImages) {
-                btnEl.style.display = 'none';
-            }
-        }, 10);
-    });
+    return div;
 }
 
-// --- 4. INTERACTIONS ---
-function expandPost(postId) {
-    const textEl = document.getElementById(`text-${postId}`);
-    const mediaEl = document.getElementById(`media-${postId}`);
-    const btnEl = document.getElementById(`btn-more-${postId}`);
+// ------------------- INTERACTIONS -------------------
+async function toggleLike(postId, btn) {
+    const formData = new FormData();
+    formData.append('action', 'like');
+    formData.append('postId', postId);
+    formData.append('userId', currentUser.uid);
 
-    textEl.classList.remove('text-truncated');
-    if(mediaEl) mediaEl.classList.add('expanded-media');
-    btnEl.style.display = 'none';
-}
-
-function toggleLike(postId) {
-    let post = posts.find(p => p.id === postId);
-    if(post.dislikes.includes(currentUser.uid)) {
-        post.dislikes = post.dislikes.filter(id => id !== currentUser.uid);
+    try {
+        const res = await fetch(API_URL, { method: 'POST', body: formData });
+        const data = await res.json();
+        if (data.status === 'liked' || data.status === 'unliked') {
+            const isLiked = data.status === 'liked';
+            btn.classList.toggle('liked', isLiked);
+            btn.querySelector('i').className = isLiked ? 'fas fa-heart' : 'far fa-heart';
+            const countSpan = btn.querySelector('.like-count');
+            let count = parseInt(countSpan.innerText);
+            count = isLiked ? count + 1 : count - 1;
+            countSpan.innerText = count;
+        }
+    } catch (err) {
+        showToast('Error toggling like');
     }
-    if(post.likes.includes(currentUser.uid)) {
-        post.likes = post.likes.filter(id => id !== currentUser.uid);
-    } else {
-        post.likes.push(currentUser.uid);
+}
+
+function toggleComments(postId) {
+    const section = document.getElementById(`comments-${postId}`);
+    section.classList.toggle('open');
+    if (section.classList.contains('open') && !section.dataset.loaded) {
+        loadComments(postId, 'comment');
+        section.dataset.loaded = 'true';
     }
-    renderFeed();
 }
 
-function toggleDislike(postId) {
-    let post = posts.find(p => p.id === postId);
-    if(post.likes.includes(currentUser.uid)) {
-        post.likes = post.likes.filter(id => id !== currentUser.uid);
+async function loadComments(postId, type) {
+    const list = document.getElementById(`comment-list-${postId}`);
+    list.innerHTML = '<div class="loading-spinner" style="padding:10px;"><i class="fas fa-spinner fa-spin"></i></div>';
+
+    try {
+        const res = await fetch(`${API_URL}?action=get_comments&postId=${postId}`);
+        const comments = await res.json();
+        const filtered = comments.filter(c => type === 'all' || c.type === type);
+        list.innerHTML = filtered.length ? filtered.map(c => `
+            <div class="single-comment">
+                <span class="comment-author" style="color:${c.author_role === 'doctor' ? 'var(--secondary)' : 'var(--dark)'}">${c.author_name}:</span>
+                <span>${c.content}</span>
+                ${c.type === 'answer' ? '<span class="answer-badge">Answer</span>' : ''}
+            </div>
+        `).join('') : '<div style="color:#9CA3AF;">No comments yet.</div>';
+    } catch (err) {
+        list.innerHTML = '<div style="color:red;">Failed to load comments</div>';
     }
-    if(post.dislikes.includes(currentUser.uid)) {
-        post.dislikes = post.dislikes.filter(id => id !== currentUser.uid);
-    } else {
-        post.dislikes.push(currentUser.uid);
-    }
-    renderFeed();
 }
 
-function toggleFollow(authorId) {
-    if (currentUser.following.includes(authorId)) {
-        currentUser.following = currentUser.following.filter(id => id !== authorId);
-        showToast("Unfollowed user.");
-    } else {
-        currentUser.following.push(authorId);
-        showToast("Following user!");
-    }
-    renderFeed();
-}
-
-function sharePost(postId) {
-    let post = posts.find(p => p.id === postId);
-    post.shares += 1;
-    showToast("Post shared to your wall!");
-    renderFeed();
-}
-
-function toggleSection(sectionId) {
-    document.getElementById(sectionId).classList.toggle('open');
-}
-
-function submitReply(postId, isAnswer) {
-    const input = document.getElementById(`input-${postId}`);
+async function submitComment(postId) {
+    const input = document.getElementById(`comment-input-${postId}`);
     const text = input.value.trim();
     if (!text) return;
 
-    let post = posts.find(p => p.id === postId);
-    post.replies.push({
-        text: text,
-        author: currentUser.name,
-        role: currentUser.role,
-        isAnswer: isAnswer,
-        timestamp: new Date()
-    });
+    const activeTab = document.querySelector(`#comments-${postId} .comment-tab.active`);
+    const type = activeTab ? activeTab.innerText.toLowerCase() : 'comment'; // 'comments' or 'answers'
+    const commentType = type === 'answers' ? 'answer' : 'comment';
 
-    input.value = '';
-    renderFeed();
-    
-    // Re-open discussion section after re-rendering
-    document.getElementById(`discussion-${postId}`).classList.add('open');
+    const formData = new FormData();
+    formData.append('action', 'comment');
+    formData.append('postId', postId);
+    formData.append('userId', currentUser.uid);
+    formData.append('authorName', currentUser.name);
+    formData.append('authorRole', currentUser.role);
+    formData.append('content', text);
+    formData.append('type', commentType);
+
+    try {
+        const res = await fetch(API_URL, { method: 'POST', body: formData });
+        const data = await res.json();
+        if (data.status === 'success') {
+            input.value = '';
+            loadComments(postId, commentType);
+            // Increment comment count in UI
+            const commentBtn = document.querySelector(`[onclick="toggleComments(${postId})"] .comment-count`);
+            if (commentBtn) commentBtn.innerText = parseInt(commentBtn.innerText) + 1;
+        } else {
+            showToast('Error posting comment');
+        }
+    } catch (err) {
+        showToast('Network error');
+    }
 }
 
-function renderReplies(repliesArray) {
-    if (!repliesArray || repliesArray.length === 0) return '<div style="color:var(--gray); font-size:0.85rem; text-align:center;">No replies yet.</div>';
-    
-    return repliesArray.map(r => {
-        let cardClass = r.isAnswer ? 'reply-item doctor-answer' : 'reply-item';
-        let badge = r.isAnswer ? '<span class="role-badge role-doctor">Verified Answer</span>' : '';
-        
-        return `
-            <div class="${cardClass}">
-                <div class="reply-header">
-                    <span class="reply-author">${r.author} ${badge}</span>
-                    <span style="font-size:0.75rem; color:var(--gray);">${formatDate(r.timestamp)}</span>
-                </div>
-                <div style="color:var(--dark); line-height:1.5;">${r.text}</div>
-            </div>
-        `;
-    }).join('');
+async function toggleFollow(userId, btn) {
+    const formData = new FormData();
+    formData.append('action', 'follow');
+    formData.append('followerUid', currentUser.uid);
+    formData.append('followedUid', userId);
+
+    try {
+        const res = await fetch(API_URL, { method: 'POST', body: formData });
+        const data = await res.json();
+        if (data.status === 'followed') {
+            btn.classList.add('following');
+            btn.innerHTML = '<i class="fas fa-user-check"></i> Following';
+        } else if (data.status === 'unfollowed') {
+            btn.classList.remove('following');
+            btn.innerHTML = '<i class="fas fa-user-plus"></i> Follow';
+        }
+    } catch (err) {
+        showToast('Error following user');
+    }
 }
 
-// --- 5. UTILITIES ---
-function formatDate(dateObj) {
-    if (!dateObj) return 'Just now';
-    return dateObj.toLocaleDateString() + ' ' + dateObj.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+async function sharePost(postId) {
+    const formData = new FormData();
+    formData.append('action', 'share');
+    formData.append('userId', currentUser.uid);
+    formData.append('originalPostId', postId);
+
+    try {
+        const res = await fetch(API_URL, { method: 'POST', body: formData });
+        const data = await res.json();
+        if (data.status === 'success') {
+            showToast('Shared to your wall!');
+            // Reload feed to show new share
+            feedOffset = 0;
+            document.getElementById('feedContainer').innerHTML = '<div class="loading-spinner"><i class="fas fa-spinner fa-spin"></i> Loading...</div>';
+            loadFeed(true);
+        } else {
+            showToast('Error sharing post');
+        }
+    } catch (err) {
+        showToast('Network error');
+    }
+}
+
+// ------------------- UI HELPERS -------------------
+function toggleText(postId) {
+    const textDiv = document.getElementById(`text-${postId}`);
+    const btn = textDiv.nextElementSibling;
+    if (textDiv.classList.contains('truncated')) {
+        textDiv.classList.remove('truncated');
+        btn.innerText = 'See less';
+    } else {
+        textDiv.classList.add('truncated');
+        btn.innerText = 'See more';
+    }
+}
+
+function expandImages(imgElement, postId) {
+    const container = imgElement.closest('.post-images');
+    if (container.classList.contains('expanded')) {
+        container.classList.remove('expanded');
+        // Optionally restore grid
+    } else {
+        container.classList.add('expanded');
+        // Load all images? For simplicity, we just expand the container
+    }
+}
+
+function timeAgo(dateStr) {
+    const date = new Date(dateStr);
+    const now = new Date();
+    const seconds = Math.floor((now - date) / 1000);
+    if (seconds < 60) return 'just now';
+    const minutes = Math.floor(seconds / 60);
+    if (minutes < 60) return `${minutes}m ago`;
+    const hours = Math.floor(minutes / 60);
+    if (hours < 24) return `${hours}h ago`;
+    const days = Math.floor(hours / 24);
+    return `${days}d ago`;
 }
 
 function showToast(msg) {
