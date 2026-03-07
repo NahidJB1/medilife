@@ -103,6 +103,7 @@ async function submitPost() {
             document.getElementById('imagePreview').innerHTML = '';
             setPostType('question');
             showToast('Post published!');
+            closePostModal();
             // Reload feed
             feedOffset = 0;
             document.getElementById('feedContainer').innerHTML = '<div class="loading-spinner"><i class="fas fa-spinner fa-spin"></i> Loading...</div>';
@@ -157,10 +158,8 @@ function createPostElement(post) {
     div.className = 'post-card';
     div.dataset.postId = post.id;
 
-    // Badge class
-    let badgeClass = 'role-patient';
-    if (post.author_role === 'doctor') badgeClass = 'role-doctor';
-    if (post.author_role === 'pharmacy') badgeClass = 'role-pharmacy';
+    // Smart Display Name (Dr. Prefix for doctors, remove badges)
+    const displayName = post.author_role === 'doctor' ? 'Dr. ' + post.author_name : post.author_name;
 
     // Tag
     let tagLabel = post.type === 'article' 
@@ -169,6 +168,17 @@ function createPostElement(post) {
 
     // Title
     let titleHtml = post.title ? `<h3>${post.title}</h3>` : '';
+
+    // Smart "See More" Truncation (Requires > 150 characters)
+    let contentHtml = '';
+    if (post.content.length > 150) {
+        contentHtml = `
+            <div class="post-text truncated" id="text-${post.id}">${post.content}</div>
+            <button class="see-more-btn" onclick="toggleText(${post.id})">See more</button>
+        `;
+    } else {
+        contentHtml = `<div class="post-text" id="text-${post.id}">${post.content}</div>`;
+    }
 
     // Images
     let imagesHtml = '';
@@ -184,30 +194,40 @@ function createPostElement(post) {
     }
 
     // Follow button (don't show for own posts)
-    let followBtn = '';
-    if (post.author_id !== currentUser.uid) {
-        followBtn = `<button class="action-btn follow-btn ${post.followed_by_user ? 'following' : ''}" onclick="toggleFollow('${post.author_id}', this)">
+    let followBtn = post.author_id !== currentUser.uid ? 
+        `<button class="action-btn follow-btn ${post.followed_by_user ? 'following' : ''}" onclick="toggleFollow('${post.author_id}', this)">
             <i class="fas ${post.followed_by_user ? 'fa-user-check' : 'fa-user-plus'}"></i> ${post.followed_by_user ? 'Following' : 'Follow'}
-        </button>`;
-    }
+        </button>` : '';
 
-    // Share button
-    const shareBtn = `<button class="action-btn" onclick="sharePost(${post.id})"><i class="fas fa-share"></i> Share</button>`;
-
-    // Interaction bar
+    // Interaction bar buttons
     const likeBtn = `<button class="action-btn ${post.liked_by_user ? 'liked' : ''}" onclick="toggleLike(${post.id}, this)">
-        <i class="${post.liked_by_user ? 'fas' : 'far'} fa-heart"></i> <span class="like-count">${post.likes_count}</span> Likes
+        <i class="${post.liked_by_user ? 'fas' : 'far'} fa-heart"></i> <span class="like-count">${post.likes_count}</span>
     </button>`;
+    
     const commentBtn = `<button class="action-btn" onclick="toggleComments(${post.id})">
-        <i class="far fa-comment"></i> <span class="comment-count">${post.comments_count}</span> Comments
+        <i class="far fa-comment"></i> <span class="comment-count">${post.comments_count}</span>
     </button>`;
+
+    const answerBtn = `<button class="action-btn" onclick="toggleAnswers(${post.id})" style="color: #16A34A;">
+        <i class="fas fa-user-md"></i> <span>Answers</span>
+    </button>`;
+
+    const shareBtn = `<button class="action-btn" onclick="sharePost(${post.id})"><i class="fas fa-share"></i></button>`;
+
+    // Doctor Answer Input Logic
+    let answerInputHtml = currentUser.role === 'doctor' ? `
+        <div class="comment-input-box">
+            <input type="text" id="answer-input-${post.id}" placeholder="Provide professional medical advice...">
+            <button class="btn-send" style="background: #16A34A;" onclick="submitAnswer(${post.id})"><i class="fas fa-paper-plane"></i></button>
+        </div>` : 
+        `<div style="font-size: 0.85rem; color: var(--gray); margin-bottom: 10px; font-style: italic;">Only verified doctors can provide answers.</div>`;
 
     div.innerHTML = `
         <div class="post-header">
             <div class="user-info">
                 <div class="avatar"><i class="fas fa-user"></i></div>
                 <div class="meta">
-                    <h4>${post.author_name} <span class="role-badge ${badgeClass}">${post.author_role.toUpperCase()}</span></h4>
+                    <h4>${displayName}</h4>
                     <span>${timeAgo(post.created_at)}</span>
                 </div>
             </div>
@@ -216,25 +236,28 @@ function createPostElement(post) {
         <div class="post-content">
             ${tagLabel}
             ${titleHtml}
-            <div class="post-text truncated" id="text-${post.id}">${post.content}</div>
-            <button class="see-more-btn" onclick="toggleText(${post.id})">See more</button>
+            ${contentHtml}
             ${imagesHtml}
         </div>
         <div class="interaction-bar">
             ${likeBtn}
             ${commentBtn}
+            ${answerBtn}
             ${shareBtn}
         </div>
+        
         <div id="comments-${post.id}" class="comments-section">
-            <div class="comment-tabs">
-                <span class="comment-tab active" onclick="loadComments(${post.id}, 'comment')">Comments</span>
-                ${currentUser.role === 'doctor' ? '<span class="comment-tab" onclick="loadComments(' + post.id + ', \'answer\')">Answers</span>' : ''}
-            </div>
             <div class="comment-input-box">
                 <input type="text" id="comment-input-${post.id}" placeholder="Write a comment...">
-                <button class="btn-send" onclick="submitComment(${post.id})"><i class="fas fa-paper-plane"></i></button>
+                <button class="btn-send" onclick="submitInteraction(${post.id}, 'comment')"><i class="fas fa-paper-plane"></i></button>
             </div>
             <div class="comment-list" id="comment-list-${post.id}"></div>
+        </div>
+
+        <div id="answers-${post.id}" class="answers-section">
+            <h4 style="color: #16A34A; margin-bottom: 12px; font-size: 1rem;"><i class="fas fa-user-md"></i> Medical Answers</h4>
+            ${answerInputHtml}
+            <div class="comment-list" id="answer-list-${post.id}"></div>
         </div>
     `;
 
@@ -266,67 +289,85 @@ async function toggleLike(postId, btn) {
 }
 
 function toggleComments(postId) {
+    document.getElementById(`answers-${postId}`).classList.remove('open'); // Close answers if open
     const section = document.getElementById(`comments-${postId}`);
     section.classList.toggle('open');
     if (section.classList.contains('open') && !section.dataset.loaded) {
-        loadComments(postId, 'comment');
+        loadInteractions(postId, 'comment');
         section.dataset.loaded = 'true';
     }
 }
 
-async function loadComments(postId, type) {
-    const list = document.getElementById(`comment-list-${postId}`);
+function toggleAnswers(postId) {
+    document.getElementById(`comments-${postId}`).classList.remove('open'); // Close comments if open
+    const section = document.getElementById(`answers-${postId}`);
+    section.classList.toggle('open');
+    if (section.classList.contains('open') && !section.dataset.loaded) {
+        loadInteractions(postId, 'answer');
+        section.dataset.loaded = 'true';
+    }
+}
+
+async function loadInteractions(postId, type) {
+    const listId = type === 'answer' ? `answer-list-${postId}` : `comment-list-${postId}`;
+    const list = document.getElementById(listId);
     list.innerHTML = '<div class="loading-spinner" style="padding:10px;"><i class="fas fa-spinner fa-spin"></i></div>';
 
     try {
         const res = await fetch(`${API_URL}?action=get_comments&postId=${postId}`);
-        const comments = await res.json();
-        const filtered = comments.filter(c => type === 'all' || c.type === type);
-        list.innerHTML = filtered.length ? filtered.map(c => `
+        const data = await res.json();
+        const filtered = data.filter(c => c.type === type);
+        
+        list.innerHTML = filtered.length ? filtered.map(c => {
+            const authorDisplay = c.author_role === 'doctor' ? 'Dr. ' + c.author_name : c.author_name;
+            const color = c.author_role === 'doctor' ? '#16A34A' : 'var(--dark)';
+            return `
             <div class="single-comment">
-                <span class="comment-author" style="color:${c.author_role === 'doctor' ? 'var(--secondary)' : 'var(--dark)'}">${c.author_name}:</span>
+                <span class="comment-author" style="color:${color}">${authorDisplay}:</span>
                 <span>${c.content}</span>
-                ${c.type === 'answer' ? '<span class="answer-badge">Answer</span>' : ''}
-            </div>
-        `).join('') : '<div style="color:#9CA3AF;">No comments yet.</div>';
+            </div>`;
+        }).join('') : `<div style="color:#9CA3AF; font-size: 0.9rem;">No ${type}s yet.</div>`;
     } catch (err) {
-        list.innerHTML = '<div style="color:red;">Failed to load comments</div>';
+        list.innerHTML = `<div style="color:red;">Failed to load data</div>`;
     }
 }
 
-async function submitComment(postId) {
-    const input = document.getElementById(`comment-input-${postId}`);
+async function submitInteraction(postId, type) {
+    const inputId = type === 'answer' ? `answer-input-${postId}` : `comment-input-${postId}`;
+    const input = document.getElementById(inputId);
     const text = input.value.trim();
     if (!text) return;
 
-    const activeTab = document.querySelector(`#comments-${postId} .comment-tab.active`);
-    const type = activeTab ? activeTab.innerText.toLowerCase() : 'comment'; // 'comments' or 'answers'
-    const commentType = type === 'answers' ? 'answer' : 'comment';
-
     const formData = new FormData();
-    formData.append('action', 'comment');
+    formData.append('action', 'comment'); // reusing your backend comment action
     formData.append('postId', postId);
     formData.append('userId', currentUser.uid);
     formData.append('authorName', currentUser.name);
     formData.append('authorRole', currentUser.role);
     formData.append('content', text);
-    formData.append('type', commentType);
+    formData.append('type', type);
 
     try {
         const res = await fetch(API_URL, { method: 'POST', body: formData });
         const data = await res.json();
         if (data.status === 'success') {
             input.value = '';
-            loadComments(postId, commentType);
-            // Increment comment count in UI
-            const commentBtn = document.querySelector(`[onclick="toggleComments(${postId})"] .comment-count`);
-            if (commentBtn) commentBtn.innerText = parseInt(commentBtn.innerText) + 1;
+            loadInteractions(postId, type);
+            if(type === 'comment') {
+                const commentBtn = document.querySelector(`[onclick="toggleComments(${postId})"] .comment-count`);
+                if (commentBtn) commentBtn.innerText = parseInt(commentBtn.innerText) + 1;
+            }
         } else {
-            showToast('Error posting comment');
+            showToast('Error posting');
         }
     } catch (err) {
         showToast('Network error');
     }
+}
+
+// Wrapper for the inline button call
+function submitAnswer(postId) {
+    submitInteraction(postId, 'answer');
 }
 
 async function toggleFollow(userId, btn) {
@@ -415,4 +456,16 @@ function showToast(msg) {
     document.getElementById('toast-msg').innerText = msg;
     box.classList.add('show');
     setTimeout(() => box.classList.remove('show'), 3000);
+}
+
+
+function openPostModal() {
+    document.getElementById('postModal').classList.add('active');
+    document.body.style.overflow = 'hidden';
+}
+
+function closePostModal(e) {
+    if (e && e.target !== document.getElementById('postModal')) return;
+    document.getElementById('postModal').classList.remove('active');
+    document.body.style.overflow = '';
 }
