@@ -328,6 +328,57 @@ textarea {
 }
 
 
+/* --- NEW FIXES & FEATURES --- */
+
+/* Add Gap Between Posts */
+#feedContainer {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+/* Comment & Answer 3-Dot Options Menu */
+.comment-options { position: relative; display: inline-block; float: right; margin-left: 10px; }
+.comment-options-trigger { 
+    background: none; border: none; color: #9CA3AF; cursor: pointer; 
+    padding: 2px 8px; border-radius: 4px; transition: 0.2s;
+}
+.comment-options-trigger:hover { color: var(--dark); background: #F3F4F6; }
+
+.comment-dropdown {
+    position: absolute; right: 0; top: 100%; background: white; border: 1px solid #E5E7EB;
+    border-radius: 8px; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); z-index: 50; 
+    width: 120px; opacity: 0; visibility: hidden; transform: translateY(-10px);
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.comment-dropdown.show { opacity: 1; visibility: visible; transform: translateY(0); }
+.comment-dropdown button {
+    width: 100%; text-align: left; padding: 8px 12px; border: none; background: none; 
+    cursor: pointer; font-size: 0.85rem; border-bottom: 1px solid #F3F4F6;
+}
+.comment-dropdown button:hover { background: #F9FAFB; }
+
+/* Notifications Dropdown */
+.nav-item-relative { position: relative; display: flex; align-items: center; }
+.notifications-dropdown {
+    position: absolute; top: 140%; right: -20px; width: 320px; max-height: 400px; overflow-y: auto;
+    background: white; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+    border: 1px solid #E5E7EB; z-index: 2000; opacity: 0; visibility: hidden; transform: translateY(-15px);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.notifications-dropdown.show { opacity: 1; visibility: visible; transform: translateY(0); }
+.notification-item { 
+    padding: 12px 15px; border-bottom: 1px solid #F3F4F6; font-size: 0.85rem; 
+    cursor: pointer; transition: background 0.2s; line-height: 1.4;
+}
+.notification-item:hover { background: #F9FAFB; }
+.notification-item.unread { background: #F0FDF4; border-left: 3px solid var(--secondary); }
+.notification-badge {
+    position: absolute; top: 0; right: 0; background: var(--primary); color: white;
+    font-size: 0.65rem; padding: 2px 6px; border-radius: 50%; transform: translate(30%, -30%);
+    font-weight: bold; border: 2px solid white;
+}
+
 /* Mobile Optimization */
 @media (max-width: 600px) {
     .navbar { padding: 0.8rem 4%; justify-content: center; } /* Centers logo */
