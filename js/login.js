@@ -1,3 +1,16 @@
+document.addEventListener('DOMContentLoaded', () => {
+    const consentToggle = document.getElementById('privacyConsent');
+    const registerBtn = document.getElementById('btnRegister');
+
+    // Listen for the toggle switch being clicked
+    if (consentToggle && registerBtn) {
+        consentToggle.addEventListener('change', function() {
+            // Enable the button if checked, disable if unchecked
+            registerBtn.disabled = !this.checked;
+        });
+    }
+});
+
 // --- 1. UI SWITCHING ---
 function switchMode(mode) {
     const container = document.getElementById('toggleContainer');
