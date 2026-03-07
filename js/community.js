@@ -31,6 +31,14 @@ function initCommunity() {
         else logoLink.href = 'patient-dashboard.html';
     }
 
+    // Set Home icon link dynamically
+    const homeLink = document.querySelector('.nav-links a[title="Dashboard"]');
+    if (homeLink) {
+        if (role === 'doctor') homeLink.href = 'doctor-dashboard.html';
+        else if (role === 'pharmacy') homeLink.href = 'pharmacy-dashboard.html';
+        else homeLink.href = 'patient-dashboard.html';
+    }
+
     // Show article tab only for doctors
     if (role === 'doctor') {
         document.getElementById('tabArticle').classList.remove('hidden');
@@ -194,10 +202,34 @@ function createPostElement(post) {
     }
 
     // Follow button (don't show for own posts)
+    // C. Inline Follow Button (Icon Only)
     let followBtn = post.author_id !== currentUser.uid ? 
-        `<button class="action-btn follow-btn ${post.followed_by_user ? 'following' : ''}" onclick="toggleFollow('${post.author_id}', this)">
-            <i class="fas ${post.followed_by_user ? 'fa-user-check' : 'fa-user-plus'}"></i> ${post.followed_by_user ? 'Following' : 'Follow'}
+        `<button class="inline-follow-btn ${post.followed_by_user ? 'following' : ''}" onclick="toggleFollow('${post.author_id}', this)" title="${post.followed_by_user ? 'Following' : 'Follow'}">
+            <i class="fas ${post.followed_by_user ? 'fa-user-check' : 'fa-user-plus'}"></i>
         </button>` : '';
+
+    // D. 3-Dot Options Menu
+    let optionsMenu = '';
+    if (post.author_id === currentUser.uid) {
+        optionsMenu = `
+            <div class="post-options">
+                <button class="options-trigger" onclick="togglePostMenu(${post.id})"><i class="fas fa-ellipsis-h"></i></button>
+                <div class="options-dropdown" id="menu-${post.id}">
+                    <button onclick="pinPost(${post.id})"><i class="fas fa-thumbtack"></i> Pin Post</button>
+                    <button onclick="editPost(${post.id})"><i class="fas fa-pen"></i> Edit</button>
+                    <button class="text-danger" onclick="deletePost(${post.id})"><i class="fas fa-trash"></i> Delete</button>
+                </div>
+            </div>`;
+    } else {
+        optionsMenu = `
+            <div class="post-options">
+                <button class="options-trigger" onclick="togglePostMenu(${post.id})"><i class="fas fa-ellipsis-h"></i></button>
+                <div class="options-dropdown" id="menu-${post.id}">
+                    <button onclick="hidePost(${post.id})"><i class="fas fa-eye-slash"></i> Hide Post</button>
+                    <button class="text-danger" onclick="blockUser('${post.author_id}')"><i class="fas fa-ban"></i> Block User</button>
+                </div>
+            </div>`;
+    }
 
     // Interaction bar buttons
     const likeBtn = `<button class="action-btn ${post.liked_by_user ? 'liked' : ''}" onclick="toggleLike(${post.id}, this)">
@@ -214,7 +246,6 @@ function createPostElement(post) {
 
     const shareBtn = `<button class="action-btn" onclick="sharePost(${post.id})"><i class="fas fa-share"></i></button>`;
 
-    // Doctor Answer Input Logic
     let answerInputHtml = currentUser.role === 'doctor' ? `
         <div class="comment-input-box">
             <input type="text" id="answer-input-${post.id}" placeholder="Provide professional medical advice...">
@@ -222,16 +253,21 @@ function createPostElement(post) {
         </div>` : 
         `<div style="font-size: 0.85rem; color: var(--gray); margin-bottom: 10px; font-style: italic;">Only verified doctors can provide answers.</div>`;
 
+    // Added Pin Indicator if pinned
+    const pinBadge = post.is_pinned == 1 ? `<span class="pin-badge"><i class="fas fa-thumbtack"></i> Pinned</span>` : '';
+
     div.innerHTML = `
         <div class="post-header">
             <div class="user-info">
-                <div class="avatar"><i class="fas fa-user"></i></div>
+                <div class="avatar" style="cursor:pointer;" onclick="openProfile('${post.author_id}')"><i class="fas fa-user"></i></div>
                 <div class="meta">
-                    <h4>${displayName}</h4>
-                    <span>${timeAgo(post.created_at)}</span>
+                    <h4 style="display:flex; align-items:center; gap:8px; cursor:pointer;" onclick="openProfile('${post.author_id}')">
+                        ${displayName} ${followBtn}
+                    </h4>
+                    <span>${pinBadge} ${timeAgo(post.created_at)}</span>
                 </div>
             </div>
-            ${followBtn}
+            ${optionsMenu}
         </div>
         <div class="post-content">
             ${tagLabel}
@@ -468,4 +504,67 @@ function closePostModal(e) {
     if (e && e.target !== document.getElementById('postModal')) return;
     document.getElementById('postModal').classList.remove('active');
     document.body.style.overflow = '';
+}
+
+
+// --- POST OPTIONS LOGIC ---
+function togglePostMenu(postId) {
+    // Close others first
+    document.querySelectorAll('.options-dropdown.show').forEach(el => {
+        if(el.id !== `menu-${postId}`) el.classList.remove('show');
+    });
+    document.getElementById(`menu-${postId}`).classList.toggle('show');
+}
+
+// Close dropdowns if clicked outside
+document.addEventListener('click', (e) => {
+    if (!e.target.closest('.post-options')) {
+        document.querySelectorAll('.options-dropdown.show').forEach(el => el.classList.remove('show'));
+    }
+});
+
+async function deletePost(postId) {
+    if(!confirm("Are you sure you want to delete this post?")) return;
+    
+    const formData = new FormData();
+    formData.append('action', 'delete_post');
+    formData.append('postId', postId);
+    formData.append('userId', currentUser.uid);
+
+    try {
+        const res = await fetch(API_URL, { method: 'POST', body: formData });
+        const data = await res.json();
+        if(data.status === 'success') {
+            document.querySelector(`.post-card[data-post-id="${postId}"]`).style.display = 'none';
+            showToast('Post deleted.');
+        } else {
+            showToast(data.message || 'Error deleting post');
+        }
+    } catch (err) {
+        showToast('Network error');
+    }
+}
+
+function hidePost(postId) {
+    document.querySelector(`.post-card[data-post-id="${postId}"]`).style.display = 'none';
+    showToast('Post hidden from your feed.');
+}
+
+function editPost(postId) {
+    showToast('Edit feature coming soon.');
+}
+
+function blockUser(userId) {
+    showToast('User blocked. You will no longer see their content.');
+    // In Phase 2, this will hit a backend table to filter feed SQL
+}
+
+async function pinPost(postId) {
+    // Placeholder for Phase 2 backend hook
+    showToast('Post pin requested. Processing...');
+}
+
+// --- PROFILE UI TRIGGER ---
+function openProfile(userId) {
+    showToast('Opening Profile... (Requires Phase 2 DB structures)');
 }
