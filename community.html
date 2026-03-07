@@ -20,37 +20,19 @@
             </div>
         </a>
         <ul class="nav-links">
-            <li><a href="dashboard.html">Dashboard</a></li>
-            <li><a href="#" class="active">Community</a></li>
-            <li><a href="dashboard.html?profile=1">Profile</a></li>
+            <li><a href="dashboard.html" title="Dashboard"><i class="fas fa-home"></i></a></li>
+            <li><a href="#" class="active" title="Community"><i class="fas fa-users"></i></a></li>
+            <li><a href="#" title="Notifications"><i class="fas fa-bell"></i></a></li>
+            <li><a href="dashboard.html?profile=1" title="Profile"><i class="fas fa-user-circle"></i></a></li>
         </ul>
     </nav>
 
     <div class="main-container">
         <main class="feed">
             <!-- Create Post Card -->
-            <div class="create-post-card">
-                <div class="cp-tabs">
-                    <div class="cp-tab active" onclick="setPostType('question')">Ask Question</div>
-                    <div class="cp-tab hidden" id="tabArticle" onclick="setPostType('article')">Write Article</div>
-                </div>
-
-                <div class="input-area">
-                    <input type="text" id="postTitle" class="post-title-input" placeholder="Article Headline...">
-                    <textarea id="postContent" placeholder="What health question is on your mind?" rows="3"></textarea>
-                    
-                    <!-- Image upload preview -->
-                    <div class="image-upload-area">
-                        <label for="postImages" class="btn-upload"><i class="fas fa-camera"></i> Add Photos</label>
-                        <input type="file" id="postImages" accept="image/*" multiple style="display: none;">
-                        <div class="image-preview" id="imagePreview"></div>
-                    </div>
-                </div>
-
-                <div class="cp-footer">
-                    <small style="color:var(--gray)">Be respectful. Medical advice here is not a substitute for professional care.</small>
-                    <button class="btn-post" onclick="submitPost()">Post</button>
-                </div>
+            <div class="slim-post-trigger" onclick="openPostModal()">
+                <div class="avatar"><i class="fas fa-user"></i></div>
+                <div class="trigger-input">What health question is on your mind?</div>
             </div>
 
             <!-- Feed Container -->
@@ -80,6 +62,36 @@
                 </ul>
             </div>
         </aside>
+    </div>
+
+    
+    <div class="modal-overlay" id="postModal" onclick="closePostModal(event)">
+        <div class="modal-content create-post-card">
+            <div class="modal-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; border-bottom: 1px solid #eee; padding-bottom: 10px;">
+                <h2 style="font-size: 1.2rem;">Create Post</h2>
+                <button class="btn-close" onclick="closePostModal()" style="background: none; border: none; font-size: 1.2rem; cursor: pointer; color: var(--gray);"><i class="fas fa-times"></i></button>
+            </div>
+            <div class="cp-tabs">
+                <div class="cp-tab active" onclick="setPostType('question')">Ask Question</div>
+                <div class="cp-tab hidden" id="tabArticle" onclick="setPostType('article')">Write Article</div>
+            </div>
+
+            <div class="input-area">
+                <input type="text" id="postTitle" class="post-title-input" placeholder="Article Headline...">
+                <textarea id="postContent" placeholder="What health question is on your mind?" rows="4"></textarea>
+                
+                <div class="image-upload-area">
+                    <label for="postImages" class="btn-upload"><i class="fas fa-camera"></i> Add Photos</label>
+                    <input type="file" id="postImages" accept="image/*" multiple style="display: none;">
+                    <div class="image-preview" id="imagePreview"></div>
+                </div>
+            </div>
+
+            <div class="cp-footer">
+                <small style="color:var(--gray)">Be respectful. Medical advice here is not a substitute for professional care.</small>
+                <button class="btn-post" onclick="submitPost()">Post</button>
+            </div>
+        </div>
     </div>
 
     <!-- Toast Notification -->
