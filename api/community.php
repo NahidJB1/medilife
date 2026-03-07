@@ -26,15 +26,23 @@ if ($action == 'get_feed') {
     $uid = $_GET['uid'] ?? ''; // current user id for like/follow status
     $limit = isset($_GET['limit']) ? intval($_GET['limit']) : 20;
     $offset = isset($_GET['offset']) ? intval($_GET['offset']) : 0;
+    
+    // NEW: Check if we are loading a specific profile's wall
+    $profileUid = isset($_GET['profileUid']) ? $conn->real_escape_string($_GET['profileUid']) : '';
 
-    // Get posts from followed users + own posts, ordered by date
-    // For simplicity, we get all posts. You can implement follow filtering later.
+    // Dynamic SQL query setup
     $sql = "SELECT p.*, 
             (SELECT COUNT(*) FROM likes WHERE post_id = p.id) AS likes_count,
             (SELECT COUNT(*) FROM comments WHERE post_id = p.id) AS comments_count
-            FROM posts p
-            ORDER BY p.created_at DESC
-            LIMIT ? OFFSET ?";
+            FROM posts p ";
+            
+    // If a profile UID is provided, filter posts to only show that user's posts
+    if ($profileUid !== '') {
+        $sql .= " WHERE p.author_id = '$profileUid' ";
+    }
+    
+    $sql .= " ORDER BY p.created_at DESC LIMIT ? OFFSET ?";
+    
     $stmt = $conn->prepare($sql);
     $stmt->bind_param("ii", $limit, $offset);
     $stmt->execute();
@@ -76,7 +84,6 @@ if ($action == 'get_feed') {
     echo json_encode($posts);
     exit;
 }
-
 // ----------------------------- CREATE POST (with images) -----------------------------
 elseif ($action == 'create_post') {
     $authorId = $_POST['authorId'];
@@ -329,6 +336,77 @@ elseif ($action == 'mark_notif_read') {
     $notifId = intval($_POST['notifId']);
     $conn->query("UPDATE notifications SET is_read = 1 WHERE id = $notifId");
     echo json_encode(["status" => "success"]);
+    exit;
+}
+
+// ----------------------------- GET PROFILE -----------------------------
+elseif ($action == 'get_profile') {
+    $targetUid = $conn->real_escape_string($_GET['targetUid']);
+    $reqUid = $conn->real_escape_string($_GET['reqUid']); // The user making the request
+
+    // Get Base User Info
+    $userQuery = $conn->query("SELECT name, role FROM users WHERE uid = '$targetUid'");
+    if($userQuery->num_rows == 0) {
+        echo json_encode(["status" => "error", "message" => "User not found"]);
+        exit;
+    }
+    $userData = $userQuery->fetch_assoc();
+
+    // Get Profile Data
+    $profileQuery = $conn->query("SELECT * FROM user_profiles WHERE user_uid = '$targetUid'");
+    if($profileQuery->num_rows > 0) {
+        $profileData = $profileQuery->fetch_assoc();
+    } else {
+        // Return empty structure if they haven't set up a profile yet
+        $profileData = [
+            'bio' => '', 'education' => '', 'location' => '', 'profession' => '', 
+            'social_links' => '{}', 'privacy_settings' => '{}'
+        ];
+    }
+
+    // Merge Data
+    $response = array_merge($userData, $profileData);
+
+    // Apply Privacy Filters if viewing someone else's profile
+    if ($targetUid !== $reqUid) {
+        $privacy = json_decode($response['privacy_settings'], true) ?? [];
+        
+        if (($privacy['location'] ?? 'public') === 'private') $response['location'] = null;
+        if (($privacy['education'] ?? 'public') === 'private') $response['education'] = null;
+        if (($privacy['profession'] ?? 'public') === 'private') $response['profession'] = null;
+        if (($privacy['social_links'] ?? 'public') === 'private') $response['social_links'] = '{}';
+    }
+
+    echo json_encode(["status" => "success", "profile" => $response]);
+    exit;
+}
+
+// ----------------------------- UPDATE PROFILE -----------------------------
+elseif ($action == 'update_profile') {
+    $uid = $conn->real_escape_string($_POST['uid']);
+    $bio = $conn->real_escape_string($_POST['bio']);
+    $education = $conn->real_escape_string($_POST['education']);
+    $location = $conn->real_escape_string($_POST['location']);
+    $profession = $conn->real_escape_string($_POST['profession']);
+    $socialLinks = $_POST['social_links']; // JSON string
+    $privacySettings = $_POST['privacy_settings']; // JSON string
+
+    // Check if profile exists
+    $check = $conn->query("SELECT id FROM user_profiles WHERE user_uid = '$uid'");
+    
+    if ($check->num_rows > 0) {
+        $stmt = $conn->prepare("UPDATE user_profiles SET bio=?, education=?, location=?, profession=?, social_links=?, privacy_settings=? WHERE user_uid=?");
+        $stmt->bind_param("sssssss", $bio, $education, $location, $profession, $socialLinks, $privacySettings, $uid);
+    } else {
+        $stmt = $conn->prepare("INSERT INTO user_profiles (bio, education, location, profession, social_links, privacy_settings, user_uid) VALUES (?, ?, ?, ?, ?, ?, ?)");
+        $stmt->bind_param("sssssss", $bio, $education, $location, $profession, $socialLinks, $privacySettings, $uid);
+    }
+
+    if ($stmt->execute()) {
+        echo json_encode(["status" => "success"]);
+    } else {
+        echo json_encode(["status" => "error", "message" => "Database error"]);
+    }
     exit;
 }
 
