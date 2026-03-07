@@ -4,83 +4,193 @@ html {
     scroll-behavior: smooth;
 }
 
+body {
+    background: #fafafa;
+    font-family: 'Poppins', sans-serif;
+    color: #333;
+    margin: 0;
+}
+
+/* Navbar adjustments (if not already in global) */
+.navbar {
+    background: white;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.03);
+    padding: 10px 40px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    position: sticky;
+    top: 0;
+    z-index: 1000;
+}
+
+.logo-container {
+    display: flex;
+    align-items: center;
+    text-decoration: none;
+}
+
+.nav-links {
+    display: flex;
+    list-style: none;
+    gap: 30px;
+}
+
+.nav-links a {
+    text-decoration: none;
+    color: #444;
+    font-weight: 500;
+    transition: color 0.3s;
+}
+
+.nav-links a:hover, .nav-links a.active {
+    color: #EF4444;
+}
+
+.btn-login {
+    background: #EF4444;
+    color: white;
+    border: none;
+    padding: 10px 24px;
+    border-radius: 40px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.3s, transform 0.2s;
+}
+
+.btn-login:hover {
+    background: #d33b3b;
+    transform: scale(1.02);
+}
+
+.menu-toggle {
+    display: none;
+    font-size: 24px;
+    cursor: pointer;
+}
+
+/* Main container */
 .policy-container {
     display: flex;
-    max-width: 1200px;
-    margin: 50px auto;
-    padding: 0 20px;
+    max-width: 1300px;
+    margin: 40px auto;
+    padding: 0 30px;
     gap: 50px;
 }
 
-/* --- Desktop Sidebar --- */
+/* --- Sidebar --- */
 .policy-sidebar {
-    flex: 0 0 250px;
+    flex: 0 0 260px;
     position: sticky;
     top: 100px;
     height: fit-content;
+    background: white;
+    border-radius: 20px;
+    padding: 20px 0;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.05);
 }
 
 .policy-sidebar .nav-link {
     display: block;
-    padding: 12px 16px;
-    color: #6c757d;
+    padding: 14px 20px;
+    color: #4a5568;
     text-decoration: none;
     font-weight: 500;
-    border-left: 3px solid transparent;
-    transition: all 0.3s ease-in-out;
-    margin-bottom: 5px;
-    border-radius: 0 6px 6px 0;
+    border-left: 4px solid transparent;
+    transition: all 0.25s ease;
+    margin: 4px 0;
+    border-radius: 0 30px 30px 0;
+    font-size: 0.95rem;
 }
 
-.policy-sidebar .nav-link:hover, 
+.policy-sidebar .nav-link:hover,
 .policy-sidebar .nav-link.active {
-    color: #0056b3; /* Adjust to match your MEDeLIFE primary color */
-    border-left-color: #0056b3;
-    background: rgba(0, 86, 179, 0.05);
+    color: #EF4444;
+    border-left-color: #EF4444;
+    background: rgba(239, 68, 68, 0.04);
     transform: translateX(6px);
 }
 
-/* --- Content & Animations --- */
+/* --- Content Area --- */
 .policy-content {
     flex: 1;
+    background: white;
+    border-radius: 30px;
+    padding: 40px 45px;
+    box-shadow: 0 15px 35px rgba(0,0,0,0.03);
+}
+
+.policy-header {
+    margin-bottom: 40px;
+    border-bottom: 2px solid #f0f0f0;
+    padding-bottom: 20px;
 }
 
 .policy-header h1 {
-    font-size: 2.5rem;
-    margin-bottom: 10px;
-    color: #333;
+    font-size: 2.6rem;
+    font-weight: 600;
+    margin: 0 0 10px;
+    background: linear-gradient(135deg, #EF4444 0%, #22C55E 80%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
 }
 
+.policy-header .effective-date {
+    color: #718096;
+    font-size: 1rem;
+    letter-spacing: 0.3px;
+}
+
+/* Sections */
 .policy-section {
-    margin-top: 40px;
-    padding-bottom: 20px;
-    border-bottom: 1px solid #eaeaea;
+    margin-top: 30px;
+    padding: 20px 0;
+    border-bottom: 1px solid #edf2f7;
     opacity: 0;
     transform: translateY(20px);
-    animation: fadeInUp 0.6s forwards ease-out;
+    animation: fadeInUp 0.5s forwards ease-out;
 }
 
 .policy-section h2 {
-    font-size: 1.4rem;
-    color: #222;
-    transition: color 0.3s ease;
+    font-size: 1.6rem;
+    font-weight: 600;
+    color: #1a202c;
+    margin-bottom: 15px;
+    transition: color 0.2s;
+}
+
+.policy-section h2:hover {
+    color: #EF4444;
 }
 
 .accordion-content {
-    margin-top: 15px;
-    line-height: 1.7;
-    color: #555;
-    transition: max-height 0.4s ease-in-out, opacity 0.4s ease-in-out;
+    line-height: 1.8;
+    color: #4a5568;
+    transition: max-height 0.4s ease-in-out, opacity 0.4s ease-in-out, margin 0.3s;
+    overflow: hidden;
 }
 
 .accordion-content ul {
-    padding-left: 20px;
+    padding-left: 25px;
+    margin: 10px 0;
 }
 
 .accordion-content li {
-    margin-bottom: 10px;
+    margin-bottom: 12px;
 }
 
+.accordion-content a {
+    color: #EF4444;
+    text-decoration: none;
+    font-weight: 500;
+}
+
+.accordion-content a:hover {
+    text-decoration: underline;
+}
+
+/* Keyframes */
 @keyframes fadeInUp {
     to {
         opacity: 1;
@@ -88,50 +198,152 @@ html {
     }
 }
 
-/* --- Mobile Accordion Conversion --- */
-@media (max-width: 768px) {
+/* Footer */
+footer {
+    text-align: center;
+    padding: 25px;
+    background: white;
+    color: #666;
+    font-size: 0.9rem;
+    border-top: 1px solid #eaeaea;
+    margin-top: 40px;
+}
+
+footer a {
+    color: #EF4444;
+    text-decoration: none;
+}
+
+footer a:hover {
+    text-decoration: underline;
+}
+
+/* Toast (optional) */
+#toast-box {
+    position: fixed;
+    bottom: 30px;
+    right: 30px;
+    background: #1a202c;
+    color: white;
+    padding: 14px 24px;
+    border-radius: 50px;
+    box-shadow: 0 10px 20px rgba(0,0,0,0.2);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 0.9rem;
+    z-index: 9999;
+    opacity: 0;
+    transition: opacity 0.3s, transform 0.3s;
+    pointer-events: none;
+}
+
+#toast-box.show {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+#toast-box i {
+    color: #22C55E;
+    font-size: 1.2rem;
+}
+
+/* --- Mobile Accordion (max-width: 992px) --- */
+@media (max-width: 992px) {
     .policy-container {
         flex-direction: column;
-        margin: 30px auto;
+        margin: 20px auto;
+        padding: 0 20px;
         gap: 20px;
     }
-    
+
     .policy-sidebar {
-        display: none; /* Hide sidebar completely on mobile */
+        display: none; /* Hide sidebar on mobile/tablet */
+    }
+
+    .policy-content {
+        padding: 25px 20px;
+    }
+
+    .policy-header h1 {
+        font-size: 2rem;
     }
 
     .policy-section h2 {
+        font-size: 1.3rem;
         cursor: pointer;
         display: flex;
         justify-content: space-between;
         align-items: center;
-        padding: 10px 0;
+        padding: 12px 0;
+        margin: 0;
+        border-radius: 8px;
+        transition: background 0.2s;
+    }
+
+    .policy-section h2:hover {
+        background: rgba(239, 68, 68, 0.02);
     }
 
     /* Accordion Plus Icon */
     .policy-section h2::after {
         content: '+';
-        font-size: 1.8rem;
+        font-size: 2rem;
         font-weight: 300;
+        color: #EF4444;
         transition: transform 0.3s ease;
+        line-height: 1;
     }
 
     .accordion-content {
         max-height: 0;
         opacity: 0;
-        overflow: hidden;
         margin-top: 0;
+        padding: 0 5px;
     }
 
     /* Active Accordion State */
     .policy-section.active .accordion-content {
-        max-height: 800px;
+        max-height: 1000px; /* large enough for content */
         opacity: 1;
-        margin-top: 10px;
+        margin-top: 15px;
     }
 
     .policy-section.active h2::after {
         transform: rotate(45deg);
-        color: #0056b3;
+        color: #22C55E;
+    }
+}
+
+/* Small mobile tweaks */
+@media (max-width: 576px) {
+    .policy-header h1 {
+        font-size: 1.8rem;
+    }
+    .policy-section h2 {
+        font-size: 1.2rem;
+    }
+    .navbar {
+        padding: 10px 20px;
+    }
+    .menu-toggle {
+        display: block;
+    }
+    .nav-links {
+        display: none;
+        flex-direction: column;
+        background: white;
+        position: absolute;
+        top: 70px;
+        left: 0;
+        width: 100%;
+        padding: 20px;
+        box-shadow: 0 10px 20px rgba(0,0,0,0.05);
+    }
+    .nav-links.active {
+        display: flex;
+    }
+    .desktop-only {
+        display: none;
     }
 }
