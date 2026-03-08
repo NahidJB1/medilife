@@ -1,6 +1,6 @@
 let targetProfileUid = new URLSearchParams(window.location.search).get('uid');
 
-// Override init from community.js to prevent loading the main feed
+// Override init from community.js to prevent loading the main feed immediately
 window.onload = () => {
     if (!localStorage.getItem('isLoggedIn')) { window.location.href = 'login.html'; return; }
     currentUser = { 
@@ -28,28 +28,35 @@ async function loadProfileData() {
             roleBadge.innerText = p.role.charAt(0).toUpperCase() + p.role.slice(1);
             roleBadge.className = `role-badge role-${p.role}`;
             
-            document.getElementById('profileBio').innerText = p.bio || '';
+            document.getElementById('followerCount').innerHTML = `<span>${p.followers_count || 0}</span> Followers`;
+            document.getElementById('followingCount').innerHTML = `<span>${p.following_count || 0}</span> Following`;
             
-            // Build Meta Grid
+            document.getElementById('profileBio').innerText = p.bio || 'This user has not written a bio yet.';
+            
+            // Build Credentials Grid (Right Sidebar)
             let metaHtml = '';
-            if(p.location) metaHtml += `<div class="meta-item"><i class="fas fa-map-marker-alt"></i> ${p.location}</div>`;
-            if(p.education) metaHtml += `<div class="meta-item"><i class="fas fa-graduation-cap"></i> ${p.education}</div>`;
-            if(p.profession) metaHtml += `<div class="meta-item"><i class="fas fa-briefcase"></i> ${p.profession}</div>`;
+            if(p.profession) metaHtml += `<div class="cred-item"><i class="fas fa-briefcase"></i> <div>Works as <strong>${p.profession}</strong></div></div>`;
+            if(p.education) metaHtml += `<div class="cred-item"><i class="fas fa-graduation-cap"></i> <div>Studied at <strong>${p.education}</strong></div></div>`;
+            if(p.location) metaHtml += `<div class="cred-item"><i class="fas fa-map-marker-alt"></i> <div>Lives in <strong>${p.location}</strong></div></div>`;
+            
+            if (metaHtml === '') metaHtml = '<div style="color:var(--gray); font-size:0.85rem;">No credentials added.</div>';
             document.getElementById('profileMetaGrid').innerHTML = metaHtml;
             
-            // Build Socials
+            // Build Socials Grid
             let socialHtml = '';
             const links = JSON.parse(p.social_links || '{}');
-            if(links.fb) socialHtml += `<a href="${links.fb}" target="_blank"><i class="fab fa-facebook"></i></a>`;
-            if(links.insta) socialHtml += `<a href="${links.insta}" target="_blank"><i class="fab fa-instagram"></i></a>`;
-            if(links.x) socialHtml += `<a href="${links.x}" target="_blank"><i class="fab fa-x-twitter"></i></a>`;
+            if(links.fb) socialHtml += `<div class="cred-item"><i class="fab fa-facebook" style="color:#1877F2"></i> <a href="${links.fb}" target="_blank">Facebook Profile</a></div>`;
+            if(links.insta) socialHtml += `<div class="cred-item"><i class="fab fa-instagram" style="color:#E4405F"></i> <a href="${links.insta}" target="_blank">Instagram Profile</a></div>`;
+            if(links.x) socialHtml += `<div class="cred-item"><i class="fab fa-x-twitter" style="color:#000"></i> <a href="${links.x}" target="_blank">X (Twitter) Profile</a></div>`;
+            
+            if (socialHtml === '') socialHtml = '<div style="color:var(--gray); font-size:0.85rem;">No social links connected.</div>';
             document.getElementById('profileSocialLinks').innerHTML = socialHtml;
 
-            // Setup Edit Button if Owner
+            // Setup Edit Buttons if Owner
             if (targetProfileUid === currentUser.uid) {
-                document.getElementById('profileActionsBox').innerHTML = `
-                    <button class="btn-edit-profile" onclick="openEditModal()"><i class="fas fa-pen"></i> Edit Profile</button>
-                `;
+                document.getElementById('editCredBtn').style.display = 'block';
+                // Add an edit bio button directly next to bio
+                document.getElementById('profileBio').insertAdjacentHTML('beforeend', ` <button class="icon-btn" onclick="openEditModal()"><i class="fas fa-pen"></i></button>`);
                 populateEditForm(p, links, JSON.parse(p.privacy_settings || '{}'));
             }
         } else {
@@ -60,19 +67,14 @@ async function loadProfileData() {
     }
 }
 
-function openEditModal() {
-    document.getElementById('editProfileModal').classList.add('active');
-}
-function closeEditModal() {
-    document.getElementById('editProfileModal').classList.remove('active');
-}
+function openEditModal() { document.getElementById('editProfileModal').classList.add('active'); }
+function closeEditModal() { document.getElementById('editProfileModal').classList.remove('active'); }
 
 function populateEditForm(p, links, priv) {
     document.getElementById('editBio').value = p.bio || '';
     document.getElementById('editLocation').value = p.location || '';
     document.getElementById('editEducation').value = p.education || '';
     document.getElementById('editProfession').value = p.profession || '';
-    
     document.getElementById('editFb').value = links.fb || '';
     document.getElementById('editInsta').value = links.insta || '';
     document.getElementById('editX').value = links.x || '';
@@ -89,7 +91,6 @@ async function saveProfile() {
         insta: document.getElementById('editInsta').value.trim(),
         x: document.getElementById('editX').value.trim()
     };
-    
     const priv = {
         location: document.getElementById('privLocation').value,
         education: document.getElementById('privEducation').value,
@@ -123,14 +124,12 @@ async function loadProfileFeed() {
     try {
         const res = await fetch(`${API_URL}?action=get_feed&uid=${currentUser.uid}&profileUid=${targetProfileUid}&limit=20&offset=0`);
         const posts = await res.json();
-        
         feed.innerHTML = '';
         if(posts.length === 0) {
-            feed.innerHTML = `<div style="text-align:center; color:var(--gray); padding: 40px;">No posts to show yet.</div>`;
+            feed.innerHTML = `<div style="text-align:center; color:var(--gray); padding: 40px; border:1px solid #E5E7EB; border-radius:12px; background:white;">No activity to show yet.</div>`;
             return;
         }
-        
-        posts.forEach(post => feed.appendChild(createPostElement(post))); // Reusing logic from community.js
+        posts.forEach(post => feed.appendChild(createPostElement(post))); 
     } catch(e) {
         feed.innerHTML = `<div style="color:red; text-align:center;">Failed to load posts</div>`;
     }
