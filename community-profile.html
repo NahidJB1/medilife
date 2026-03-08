@@ -13,14 +13,21 @@
     <nav class="navbar">
         <a href="dashboard.html" id="navLogo" class="logo-container">
             <svg width="35" height="35" viewBox="0 0 100 100"><rect x="35" y="10" width="30" height="80" rx="5" fill="#EF4444" /><rect x="10" y="35" width="80" height="30" rx="5" fill="#EF4444" /></svg>
-            <div style="font-family: 'Poppins', sans-serif; font-size: 20px; font-weight: 700;"><span style="color: #EF4444;">MED</span><span style="color: #000;">e</span><span style="color: #22C55E;">LIFE</span></div>
+            <div style="font-family: 'Poppins', sans-serif; font-size: 20px; font-weight: 700;">
+                <span style="color: #EF4444;">MED</span><span style="color: #000;">e</span><span style="color: #22C55E;">LIFE</span>
+            </div>
         </a>
         <ul class="nav-links">
             <li><a href="dashboard.html" title="Dashboard"><i class="fas fa-home"></i></a></li>
             <li><a href="community.html" title="Community"><i class="fas fa-users"></i></a></li>
             <li class="nav-item-relative">
-                <a href="#" title="Notifications" onclick="toggleNotifications(event)"><i class="fas fa-bell"></i><span class="notification-badge" id="notifBadge" style="display:none;">0</span></a>
-                <div class="notifications-dropdown" id="notifDropdown"><div style="padding: 15px; text-align: center; color: var(--gray);">Loading...</div></div>
+                <a href="#" title="Notifications" onclick="toggleNotifications(event)">
+                    <i class="fas fa-bell"></i>
+                    <span class="notification-badge" id="notifBadge" style="display:none;">0</span>
+                </a>
+                <div class="notifications-dropdown" id="notifDropdown">
+                    <div style="padding: 15px; text-align: center; color: var(--gray);">Loading...</div>
+                </div>
             </li>
             <li><a href="#" class="active" title="Profile"><i class="fas fa-user-circle"></i></a></li>
         </ul>
@@ -29,94 +36,109 @@
     <div class="main-container profile-layout">
         <div class="profile-main">
             <div class="profile-intro animate-fade-in">
-                <div class="profile-avatar-large" style="position:relative;">
-                    <img id="profileDisplayPic" src="" style="width:100%; height:100%; border-radius:50%; object-fit:cover; display:none;">
-                    <i class="fas fa-user" id="profileDefaultIcon"></i>
-                    <label for="avatarUploadBtn" class="avatar-upload-overlay" id="avatarOverlay" style="display:none;"><i class="fas fa-camera"></i></label>
-                    <input type="file" id="avatarUploadBtn" hidden accept="image/*" onchange="uploadAvatar(this)">
+                <div class="profile-avatar-large" id="profileAvatarContainer" style="position: relative; overflow: hidden;">
+                    <img id="profileImage" src="https://via.placeholder.com/150" alt="Profile" style="width:100%; height:100%; object-fit:cover; border-radius:50%; display:none;">
+                    <i class="fas fa-user" id="profileIconPlaceholder"></i>
+                    
+                    <label for="profileImgUpload" class="avatar-upload-overlay" id="avatarUploadBtn" style="display:none;">
+                        <i class="fas fa-camera"></i>
+                    </label>
+                    <input type="file" id="profileImgUpload" hidden accept="image/*" onchange="uploadProfilePicture(this)">
                 </div>
 
                 <div class="profile-titles">
                     <h1 id="profileName">Loading...</h1>
                     <span class="role-badge" id="profileRole">Role</span>
                 </div>
+                
                 <div class="profile-stats">
-                    <span id="followerCount" class="clickable-stat" onclick="openFollowList('followers')">0 Followers</span> • 
-                    <span id="followingCount" class="clickable-stat" onclick="openFollowList('following')">0 Following</span>
+                    <a href="javascript:void(0)" onclick="openFollowModal('followers')" id="followerCount" style="text-decoration:none; color:inherit;"><span>0</span> Followers</a> • 
+                    <a href="javascript:void(0)" onclick="openFollowModal('following')" id="followingCount" style="text-decoration:none; color:inherit;"><span>0</span> Following</a>
                 </div>
                 <p class="profile-bio" id="profileBio">Write a description about yourself...</p>
                 
-                <div class="profile-tabs">
+                <div class="profile-tabs" id="profileTabsContainer">
                     <div class="p-tab active" onclick="switchProfileTab('wall', this)">Profile Wall</div>
-                    <div class="p-tab" id="tabAnswers" onclick="switchProfileTab('answers', this)">Answers</div>
+                    <div class="p-tab" id="tabAnswers" onclick="switchProfileTab('answers', this)" style="display:none;">Answers</div>
                     <div class="p-tab" onclick="switchProfileTab('shared', this)">Shared</div>
                 </div>
             </div>
 
-            <div id="feedContainer"><div class="loading-spinner"><i class="fas fa-spinner fa-spin"></i> Loading timeline...</div></div>
+            <div id="feedContainer">
+                <div class="loading-spinner"><i class="fas fa-spinner fa-spin"></i> Loading timeline...</div>
+            </div>
         </div>
 
         <div class="profile-sidebar animate-fade-in">
             <div class="sidebar-section">
                 <div class="section-header">
-                    <h3>Personal Detail</h3>
+                      <h3>Personal Detail</h3>
                     <button class="icon-btn edit-btn" id="editCredBtn" style="display:none;" onclick="openEditModal()"><i class="fas fa-pen"></i></button>
                 </div>
-                <div class="cred-list" id="profileMetaGrid"><div style="color:var(--gray); font-size: 0.85rem;">Loading credentials...</div></div>
+                <div class="cred-list" id="profileMetaGrid">
+                    <div style="color:var(--gray); font-size: 0.85rem;">Loading credentials...</div>
+                </div>
             </div>
             
             <div class="sidebar-section">
-                <div class="section-header"><h3>Social Links</h3></div>
-                <div class="cred-list" id="profileSocialLinks"></div>
+                <div class="section-header">
+                    <h3>Social Links</h3>
+                </div>
+                <div class="cred-list" id="profileSocialLinks">
+                    </div>
             </div>
         </div>
     </div>
 
-    <div class="modal-overlay" id="editProfileModal">
+<div class="modal-overlay" id="editProfileModal">
         <div class="modal-content" style="max-height: 90vh; overflow-y: auto;">
             <div class="modal-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; border-bottom: 1px solid #eee; padding-bottom: 10px;">
                 <h2>Edit Personal Detail</h2>
                 <button class="btn-close" onclick="closeEditModal()" style="background: none; border: none; font-size: 1.2rem; cursor: pointer;"><i class="fas fa-times"></i></button>
             </div>
             
-            <div class="form-group"><label>Bio</label><textarea id="editBio" rows="3"></textarea></div>
+            <div class="form-group">
+                <label>Bio (Describe yourself)</label>
+                <textarea id="editBio" rows="3" placeholder="I am a medical professional specializing in..."></textarea>
+            </div>
             
             <div class="form-group-flex">
-                <div class="flex-input"><label>Location</label><input type="text" id="editLocation"></div>
+                <div class="flex-input"><label>Location</label><input type="text" id="editLocation" placeholder="e.g. Kuala Lumpur, Malaysia"></div>
                 <select id="privLocation" class="privacy-select"><option value="public">Public</option><option value="followers">Followers</option><option value="private">Only Me</option></select>
             </div>
-            
             <div class="form-group-flex">
-                <div class="flex-input"><label>Education</label><input type="text" id="editEducation"></div>
+                <div class="flex-input"><label>Education</label><input type="text" id="editEducation" placeholder="e.g. MD from Oxford"></div>
                 <select id="privEducation" class="privacy-select"><option value="public">Public</option><option value="followers">Followers</option><option value="private">Only Me</option></select>
             </div>
-
             <div class="form-group-flex">
-                <div class="flex-input"><label>Work Experience (Profession)</label><input type="text" id="editProfession"></div>
+                <div class="flex-input"><label>Work Experience</label><input type="text" id="editProfession" placeholder="e.g. Cardiologist"></div>
                 <select id="privProfession" class="privacy-select"><option value="public">Public</option><option value="followers">Followers</option><option value="private">Only Me</option></select>
             </div>
-
-            <div class="form-group"><label>Languages Known</label><input type="text" id="editLanguages" placeholder="e.g. English, Malay, Mandarin"></div>
+            <div class="form-group-flex">
+                <div class="flex-input"><label>Languages Known</label><input type="text" id="editLanguages" placeholder="e.g. English, Malay"></div>
+                <select id="privLanguages" class="privacy-select"><option value="public">Public</option><option value="followers">Followers</option><option value="private">Only Me</option></select>
+            </div>
             
-            <h4 style="margin: 20px 0 10px; color:var(--dark); font-size:0.95rem;">Social Links</h4>
-            <select id="privSocial" class="privacy-select" style="width:100%; margin-bottom:15px; margin-top:0;"><option value="public">Show Links to Public</option><option value="followers">Show Links to Followers</option><option value="private">Only Me</option></select>
+            <h4 style="margin: 20px 0 10px; border-bottom: 1px solid #eee; padding-bottom:5px;">Social Links</h4>
+            <select id="privSocial" class="privacy-select" style="width: 100%; margin-bottom: 15px; margin-top: 0;"><option value="public">Links Visible To: Public</option><option value="followers">Links Visible To: Followers</option><option value="private">Links Visible To: Only Me</option></select>
             
             <div class="form-group-flex"><div class="flex-input"><label><i class="fab fa-facebook" style="color:#1877F2"></i> Facebook URL</label><input type="text" id="editFb"></div></div>
             <div class="form-group-flex"><div class="flex-input"><label><i class="fab fa-instagram" style="color:#E4405F"></i> Instagram URL</label><input type="text" id="editInsta"></div></div>
-            <div class="form-group-flex"><div class="flex-input"><label><i class="fab fa-x-twitter"></i> X URL</label><input type="text" id="editX"></div></div>
+            <div class="form-group-flex"><div class="flex-input"><label><i class="fab fa-x-twitter"></i> X (Twitter) URL</label><input type="text" id="editX"></div></div>
             <div class="form-group-flex" style="margin-bottom: 20px;"><div class="flex-input"><label><i class="fab fa-youtube" style="color:#FF0000"></i> YouTube URL</label><input type="text" id="editYt"></div></div>
 
             <button class="btn-post" onclick="saveProfile()" style="width:100%;">Save Changes</button>
         </div>
     </div>
 
-    <div class="modal-overlay" id="followListModal" onclick="closeFollowModal(event)">
-        <div class="modal-content" style="max-width:400px; padding: 0;">
-            <div style="padding:15px; border-bottom:1px solid #eee; display:flex; justify-content:space-between; align-items:center;">
-                <h3 id="followModalTitle">Followers</h3>
-                <button onclick="document.getElementById('followListModal').classList.remove('active')" style="background:none; border:none; font-size:1.2rem; cursor:pointer;"><i class="fas fa-times"></i></button>
+    <div class="modal-overlay" id="followModal">
+        <div class="modal-content" style="max-width: 400px;">
+            <div class="modal-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; border-bottom: 1px solid #eee; padding-bottom: 10px;">
+                <h2 id="followModalTitle">Followers</h2>
+                <button class="btn-close" onclick="document.getElementById('followModal').classList.remove('active')" style="background: none; border: none; font-size: 1.2rem; cursor: pointer;"><i class="fas fa-times"></i></button>
             </div>
-            <div id="followListContainer" style="max-height: 400px; overflow-y: auto; padding: 10px;"></div>
+            <div id="followListContainer" style="max-height: 300px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px;">
+                </div>
         </div>
     </div>
 
