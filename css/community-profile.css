@@ -100,3 +100,10 @@
 }
 .follow-user-item strong { display: block; font-size: 0.95rem; color: var(--dark); }
 .follow-user-item span { font-size: 0.8rem; color: var(--gray); text-transform: capitalize; }
+
+/* Ensure Edit Modal Labels are dark and readable */
+.form-group label, .flex-input label {
+    color: #111827 !important; /* Force Dark text */
+    font-weight: 600 !important;
+    opacity: 1 !important;
+}
