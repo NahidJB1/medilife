@@ -80,13 +80,23 @@
 
 /* Avatar Upload Overlay */
 .avatar-upload-overlay {
-    position: absolute; bottom: 0; right: 0; background: var(--primary);
-    color: white; width: 35px; height: 35px; border-radius: 50%;
-    display: flex; align-items: center; justify-content: center;
-    cursor: pointer; border: 3px solid white; transition: 0.2s;
+    position: absolute; bottom: 0; left: 0; width: 100%; height: 35%;
+    background: rgba(0,0,0,0.6); color: white; display: flex;
+    align-items: center; justify-content: center; font-size: 1.2rem;
+    cursor: pointer; opacity: 0; transition: 0.3s;
 }
-.avatar-upload-overlay:hover { transform: scale(1.1); background: var(--primary-hover); }
+.profile-avatar-large:hover .avatar-upload-overlay { opacity: 1; }
 
-/* Clickable Stats */
-.clickable-stat { cursor: pointer; transition: 0.2s; }
-.clickable-stat:hover { text-decoration: underline; color: var(--primary); }
+/* Follow List Items */
+.follow-user-item {
+    display: flex; align-items: center; gap: 12px; padding: 10px;
+    border-radius: 8px; transition: 0.2s; cursor: pointer; text-decoration: none; color: inherit;
+}
+.follow-user-item:hover { background: #F3F4F6; }
+.follow-user-item img { width: 40px; height: 40px; border-radius: 50%; object-fit: cover; }
+.follow-user-item .placeholder { 
+    width: 40px; height: 40px; border-radius: 50%; background: #E5E7EB; 
+    display: flex; align-items: center; justify-content: center; color: #9CA3AF; 
+}
+.follow-user-item strong { display: block; font-size: 0.95rem; color: var(--dark); }
+.follow-user-item span { font-size: 0.8rem; color: var(--gray); text-transform: capitalize; }
