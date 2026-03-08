@@ -379,6 +379,31 @@ textarea {
     font-weight: bold; border: 2px solid white;
 }
 
+/* Fix narrow comment layout */
+.single-comment {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    background: white;
+    padding: 12px 15px;
+    border-radius: 8px;
+    margin-bottom: 8px;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+    border: 1px solid #E5E7EB;
+}
+.comment-text-content {
+    margin-top: 6px;
+    color: #374151;
+    word-wrap: break-word;
+    font-size: 0.95rem;
+}
+.comment-input-box {
+    width: 100%;
+}
+.comment-list {
+    width: 100%;
+    padding-right: 5px; /* Add slight padding for scrollbar */
+}
 
 /* Mobile Optimization */
 @media (max-width: 600px) {
