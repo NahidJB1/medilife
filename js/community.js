@@ -3,6 +3,7 @@ const API_URL = 'api/community.php'; // Adjust path if needed
 
 let currentUser = null;
 let currentPostType = 'question';
+let currentSort = 'recent';
 let feedOffset = 0;
 let loading = false;
 let hasMore = true;
@@ -145,7 +146,7 @@ async function loadFeed(reset = false) {
     if (!hasMore) return;
 
     loading = true;
-    const url = `${API_URL}?action=get_feed&uid=${currentUser.uid}&limit=10&offset=${feedOffset}`;
+    const url = `${API_URL}?action=get_feed&uid=${currentUser.uid}&sort=${currentSort}&limit=10&offset=${feedOffset}`;
     try {
         const res = await fetch(url);
         const posts = await res.json();
@@ -326,6 +327,31 @@ function createPostElement(post) {
     `;
 
     return div;
+}
+
+// ------------------- Switch Feed Sort -------------------
+function switchFeedSort(sortType) {
+    if (currentSort === sortType) return;
+    currentSort = sortType;
+    
+    // Smooth UI Animation
+    const container = document.getElementById('sortToggleContainer');
+    const btnRecent = document.getElementById('btnRecent');
+    const btnTrending = document.getElementById('btnTrending');
+    
+    if (sortType === 'trending') {
+        container.classList.add('trending-active');
+        btnRecent.classList.remove('active');
+        btnTrending.classList.add('active');
+    } else {
+        container.classList.remove('trending-active');
+        btnTrending.classList.remove('active');
+        btnRecent.classList.add('active');
+    }
+
+    // Reload the feed with the new algorithm
+    document.getElementById('feedContainer').innerHTML = '<div class="loading-spinner"><i class="fas fa-spinner fa-spin"></i> Analyzing trends...</div>';
+    loadFeed(true);
 }
 
 // ------------------- INTERACTIONS -------------------
