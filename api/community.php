@@ -341,7 +341,7 @@ elseif ($action == 'mark_notif_read') {
 
 // ----------------------------- GET PROFILE -----------------------------
 elseif ($action == 'get_profile') {
-    $targetUid = $conn->real_escape_string($_GET['targetUid']);
+    $targetUid = $$conn->real_escape_string($_GET['targetUid']);
     $reqUid = $conn->real_escape_string($_GET['reqUid']); // The user making the request
 
     // Get Base User Info
@@ -351,6 +351,12 @@ elseif ($action == 'get_profile') {
         exit;
     }
     $userData = $userQuery->fetch_assoc();
+
+    // NEW: Get Follower/Following Counts
+    $followersCount = $conn->query("SELECT COUNT(*) as count FROM follows WHERE followed_uid = '$targetUid'")->fetch_assoc()['count'];
+    $followingCount = $conn->query("SELECT COUNT(*) as count FROM follows WHERE follower_uid = '$targetUid'")->fetch_assoc()['count'];
+    $userData['followers_count'] = $followersCount;
+    $userData['following_count'] = $followingCount;
 
     // Get Profile Data
     $profileQuery = $conn->query("SELECT * FROM user_profiles WHERE user_uid = '$targetUid'");
@@ -380,7 +386,6 @@ elseif ($action == 'get_profile') {
     echo json_encode(["status" => "success", "profile" => $response]);
     exit;
 }
-
 // ----------------------------- UPDATE PROFILE -----------------------------
 elseif ($action == 'update_profile') {
     $uid = $conn->real_escape_string($_POST['uid']);
