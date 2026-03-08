@@ -44,6 +44,11 @@
             </div>
 
             <!-- Feed Container -->
+            <div class="feed-sort-toggle" id="sortToggleContainer">
+                <div class="sort-bg"></div>
+                <button class="sort-btn active" id="btnRecent" onclick="switchFeedSort('recent')"><i class="fas fa-clock"></i> Recent</button>
+                <button class="sort-btn" id="btnTrending" onclick="switchFeedSort('trending')"><i class="fas fa-fire"></i> Trending</button>
+            </div>
             <div id="feedContainer">
                 <div class="loading-spinner"><i class="fas fa-spinner fa-spin"></i> Loading community...</div>
             </div>
