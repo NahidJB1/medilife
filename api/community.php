@@ -21,69 +21,7 @@ function createNotification($conn, $post_id, $sender_uid, $type) {
     }
 }
 
-// ----------------------------- GET FEED -----------------------------
-if ($action == 'get_feed') {
-    $uid = $_GET['uid'] ?? ''; // current user id for like/follow status
-    $limit = isset($_GET['limit']) ? intval($_GET['limit']) : 20;
-    $offset = isset($_GET['offset']) ? intval($_GET['offset']) : 0;
-    
-    // NEW: Check if we are loading a specific profile's wall
-    $profileUid = isset($_GET['profileUid']) ? $conn->real_escape_string($_GET['profileUid']) : '';
 
-    // Dynamic SQL query setup
-    $sql = "SELECT p.*, 
-            (SELECT COUNT(*) FROM likes WHERE post_id = p.id) AS likes_count,
-            (SELECT COUNT(*) FROM comments WHERE post_id = p.id) AS comments_count
-            FROM posts p ";
-            
-    // If a profile UID is provided, filter posts to only show that user's posts
-    if ($profileUid !== '') {
-        $sql .= " WHERE p.author_id = '$profileUid' ";
-    }
-    
-    $sql .= " ORDER BY p.created_at DESC LIMIT ? OFFSET ?";
-    
-    $stmt = $conn->prepare($sql);
-    $stmt->bind_param("ii", $limit, $offset);
-    $stmt->execute();
-    $result = $stmt->get_result();
-
-    $posts = [];
-    while ($row = $result->fetch_assoc()) {
-        // Decode images JSON
-        $row['images'] = json_decode($row['images'], true) ?? [];
-
-        // If it's a share, fetch original post details
-        if ($row['type'] == 'share' && $row['original_post_id']) {
-            $orig = $conn->query("SELECT author_name, author_role, content, images FROM posts WHERE id = " . $row['original_post_id'])->fetch_assoc();
-            $row['original'] = $orig;
-        }
-
-        // Check if current user liked this post
-        if ($uid) {
-            $likeCheck = $conn->query("SELECT id FROM likes WHERE post_id = {$row['id']} AND user_id = '$uid'");
-            $row['liked_by_user'] = $likeCheck->num_rows > 0;
-        } else {
-            $row['liked_by_user'] = false;
-        }
-
-        // Check if current user follows the author
-        if ($uid) {
-            $followCheck = $conn->query("SELECT id FROM follows WHERE follower_uid = '$uid' AND followed_uid = '{$row['author_id']}'");
-            $row['followed_by_user'] = $followCheck->num_rows > 0;
-        } else {
-            $row['followed_by_user'] = false;
-        }
-
-        // Format date
-        $row['created_at'] = date('c', strtotime($row['created_at']));
-
-        $posts[] = $row;
-    }
-
-    echo json_encode($posts);
-    exit;
-}
 // ----------------------------- CREATE POST (with images) -----------------------------
 elseif ($action == 'create_post') {
     $authorId = $_POST['authorId'];
@@ -339,79 +277,160 @@ elseif ($action == 'mark_notif_read') {
     exit;
 }
 
-// ----------------------------- GET PROFILE -----------------------------
-elseif ($action == 'get_profile') {
-    $targetUid = $$conn->real_escape_string($_GET['targetUid']);
-    $reqUid = $conn->real_escape_string($_GET['reqUid']); // The user making the request
+// ----------------------------- GET FEED (Updated for Tabs) -----------------------------
+if ($action == 'get_feed') {
+    $uid = $_GET['uid'] ?? ''; 
+    $limit = isset($_GET['limit']) ? intval($_GET['limit']) : 20;
+    $offset = isset($_GET['offset']) ? intval($_GET['offset']) : 0;
+    $profileUid = isset($_GET['profileUid']) ? $conn->real_escape_string($_GET['profileUid']) : '';
+    $postType = isset($_GET['postType']) ? $_GET['postType'] : ''; // 'wall' or 'shared'
 
-    // Get Base User Info
-    $userQuery = $conn->query("SELECT name, role FROM users WHERE uid = '$targetUid'");
+    $sql = "SELECT p.*, 
+            (SELECT COUNT(*) FROM likes WHERE post_id = p.id) AS likes_count,
+            (SELECT COUNT(*) FROM comments WHERE post_id = p.id) AS comments_count
+            FROM posts p ";
+            
+    if ($profileUid !== '') {
+        $sql .= " WHERE p.author_id = '$profileUid' ";
+        if ($postType === 'wall') {
+            $sql .= " AND p.type != 'share' "; // Only original posts
+        } elseif ($postType === 'shared') {
+            $sql .= " AND p.type = 'share' "; // Only shares
+        }
+    }
+    
+    $sql .= " ORDER BY p.created_at DESC LIMIT ? OFFSET ?";
+    
+    $stmt = $conn->prepare($sql);
+    $stmt->bind_param("ii", $limit, $offset);
+    $stmt->execute();
+    $result = $stmt->get_result();
+
+    $posts = [];
+    while ($row = $result->fetch_assoc()) {
+        $row['images'] = json_decode($row['images'], true) ?? [];
+        if ($row['type'] == 'share' && $row['original_post_id']) {
+            $orig = $conn->query("SELECT author_name, author_role, content, images FROM posts WHERE id = " . $row['original_post_id'])->fetch_assoc();
+            $row['original'] = $orig;
+        }
+        if ($uid) {
+            $row['liked_by_user'] = $conn->query("SELECT id FROM likes WHERE post_id = {$row['id']} AND user_id = '$uid'")->num_rows > 0;
+            $row['followed_by_user'] = $conn->query("SELECT id FROM follows WHERE follower_uid = '$uid' AND followed_uid = '{$row['author_id']}'")->num_rows > 0;
+        } else {
+            $row['liked_by_user'] = false; $row['followed_by_user'] = false;
+        }
+        $row['created_at'] = date('c', strtotime($row['created_at']));
+        $posts[] = $row;
+    }
+    echo json_encode($posts);
+    exit;
+}
+
+// ----------------------------- GET PROFILE (Updated for Sync & Privacy) -----------------------------
+elseif ($action == 'get_profile') {
+    $targetUid = $conn->real_escape_string($_GET['targetUid']);
+    $reqUid = $conn->real_escape_string($_GET['reqUid']);
+
+    // Fetch Base User Info (Including Profile Pic and Joined Date)
+    $userQuery = $conn->query("SELECT name, role, profile_pic, created_at as joined_date FROM users WHERE uid = '$targetUid'");
     if($userQuery->num_rows == 0) {
-        echo json_encode(["status" => "error", "message" => "User not found"]);
-        exit;
+        echo json_encode(["status" => "error", "message" => "User not found"]); exit;
     }
     $userData = $userQuery->fetch_assoc();
 
-    // NEW: Get Follower/Following Counts
-    $followersCount = $conn->query("SELECT COUNT(*) as count FROM follows WHERE followed_uid = '$targetUid'")->fetch_assoc()['count'];
-    $followingCount = $conn->query("SELECT COUNT(*) as count FROM follows WHERE follower_uid = '$targetUid'")->fetch_assoc()['count'];
-    $userData['followers_count'] = $followersCount;
-    $userData['following_count'] = $followingCount;
+    // Get Follower/Following Counts
+    $userData['followers_count'] = $conn->query("SELECT COUNT(*) as count FROM follows WHERE followed_uid = '$targetUid'")->fetch_assoc()['count'];
+    $userData['following_count'] = $conn->query("SELECT COUNT(*) as count FROM follows WHERE follower_uid = '$targetUid'")->fetch_assoc()['count'];
 
-    // Get Profile Data
+    // Get Extended Profile Data
     $profileQuery = $conn->query("SELECT * FROM user_profiles WHERE user_uid = '$targetUid'");
     if($profileQuery->num_rows > 0) {
         $profileData = $profileQuery->fetch_assoc();
     } else {
-        // Return empty structure if they haven't set up a profile yet
-        $profileData = [
-            'bio' => '', 'education' => '', 'location' => '', 'profession' => '', 
-            'social_links' => '{}', 'privacy_settings' => '{}'
-        ];
+        $profileData = ['bio' => '', 'education' => '', 'location' => '', 'profession' => '', 'languages' => '', 'social_links' => '{}', 'privacy_settings' => '{}'];
     }
 
-    // Merge Data
     $response = array_merge($userData, $profileData);
 
-    // Apply Privacy Filters if viewing someone else's profile
+    // Apply Smart Privacy Filters
     if ($targetUid !== $reqUid) {
+        // Check if the requester is a follower
+        $isFollower = $conn->query("SELECT id FROM follows WHERE follower_uid = '$reqUid' AND followed_uid = '$targetUid'")->num_rows > 0;
         $privacy = json_decode($response['privacy_settings'], true) ?? [];
         
-        if (($privacy['location'] ?? 'public') === 'private') $response['location'] = null;
-        if (($privacy['education'] ?? 'public') === 'private') $response['education'] = null;
-        if (($privacy['profession'] ?? 'public') === 'private') $response['profession'] = null;
-        if (($privacy['social_links'] ?? 'public') === 'private') $response['social_links'] = '{}';
+        $checkPriv = function($field) use ($privacy, $isFollower) {
+            $setting = $privacy[$field] ?? 'public';
+            if ($setting === 'private') return false;
+            if ($setting === 'followers' && !$isFollower) return false;
+            return true;
+        };
+
+        if (!$checkPriv('location')) $response['location'] = null;
+        if (!$checkPriv('education')) $response['education'] = null;
+        if (!$checkPriv('profession')) $response['profession'] = null;
+        if (!$checkPriv('social_links')) $response['social_links'] = '{}';
     }
 
     echo json_encode(["status" => "success", "profile" => $response]);
     exit;
 }
-// ----------------------------- UPDATE PROFILE -----------------------------
+
+// ----------------------------- UPDATE PROFILE (Updated fields) -----------------------------
 elseif ($action == 'update_profile') {
     $uid = $conn->real_escape_string($_POST['uid']);
     $bio = $conn->real_escape_string($_POST['bio']);
     $education = $conn->real_escape_string($_POST['education']);
     $location = $conn->real_escape_string($_POST['location']);
     $profession = $conn->real_escape_string($_POST['profession']);
-    $socialLinks = $_POST['social_links']; // JSON string
-    $privacySettings = $_POST['privacy_settings']; // JSON string
+    $languages = $conn->real_escape_string($_POST['languages']);
+    $socialLinks = $_POST['social_links']; 
+    $privacySettings = $_POST['privacy_settings']; 
 
-    // Check if profile exists
     $check = $conn->query("SELECT id FROM user_profiles WHERE user_uid = '$uid'");
-    
     if ($check->num_rows > 0) {
-        $stmt = $conn->prepare("UPDATE user_profiles SET bio=?, education=?, location=?, profession=?, social_links=?, privacy_settings=? WHERE user_uid=?");
-        $stmt->bind_param("sssssss", $bio, $education, $location, $profession, $socialLinks, $privacySettings, $uid);
+        $stmt = $conn->prepare("UPDATE user_profiles SET bio=?, education=?, location=?, profession=?, languages=?, social_links=?, privacy_settings=? WHERE user_uid=?");
+        $stmt->bind_param("ssssssss", $bio, $education, $location, $profession, $languages, $socialLinks, $privacySettings, $uid);
     } else {
-        $stmt = $conn->prepare("INSERT INTO user_profiles (bio, education, location, profession, social_links, privacy_settings, user_uid) VALUES (?, ?, ?, ?, ?, ?, ?)");
-        $stmt->bind_param("sssssss", $bio, $education, $location, $profession, $socialLinks, $privacySettings, $uid);
+        $stmt = $conn->prepare("INSERT INTO user_profiles (bio, education, location, profession, languages, social_links, privacy_settings, user_uid) VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
+        $stmt->bind_param("ssssssss", $bio, $education, $location, $profession, $languages, $socialLinks, $privacySettings, $uid);
     }
+    if ($stmt->execute()) echo json_encode(["status" => "success"]);
+    else echo json_encode(["status" => "error", "message" => "Database error"]);
+    exit;
+}
 
-    if ($stmt->execute()) {
-        echo json_encode(["status" => "success"]);
+// ----------------------------- GET FOLLOW LISTS -----------------------------
+elseif ($action == 'get_follow_list') {
+    $uid = $conn->real_escape_string($_GET['uid']);
+    $type = $_GET['type']; // 'followers' or 'following'
+
+    if ($type === 'followers') {
+        $sql = "SELECT u.uid, u.name, u.role, u.profile_pic FROM follows f JOIN users u ON f.follower_uid = u.uid WHERE f.followed_uid = '$uid'";
     } else {
-        echo json_encode(["status" => "error", "message" => "Database error"]);
+        $sql = "SELECT u.uid, u.name, u.role, u.profile_pic FROM follows f JOIN users u ON f.followed_uid = u.uid WHERE f.follower_uid = '$uid'";
     }
+    
+    $result = $conn->query($sql);
+    $users = [];
+    while ($row = $result->fetch_assoc()) { $users[] = $row; }
+    echo json_encode($users);
+    exit;
+}
+
+// ----------------------------- GET USER ANSWERS -----------------------------
+elseif ($action == 'get_user_answers') {
+    $uid = $conn->real_escape_string($_GET['uid']);
+    // Fetch comments that are answers, along with the original post title/content
+    $sql = "SELECT c.content as answer_content, c.created_at, p.id as post_id, p.title as post_title, p.content as post_content 
+            FROM comments c JOIN posts p ON c.post_id = p.id 
+            WHERE c.user_id = '$uid' AND c.type = 'answer' ORDER BY c.created_at DESC LIMIT 20";
+    $result = $conn->query($sql);
+    $answers = [];
+    while ($row = $result->fetch_assoc()) {
+        $row['created_at'] = date('c', strtotime($row['created_at']));
+        $answers[] = $row;
+    }
+    echo json_encode($answers);
     exit;
 }
 
