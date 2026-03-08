@@ -27,15 +27,26 @@ if ($action == 'get_feed') {
     $limit = isset($_GET['limit']) ? intval($_GET['limit']) : 20;
     $offset = isset($_GET['offset']) ? intval($_GET['offset']) : 0;
     $profileUid = isset($_GET['profileUid']) ? $conn->real_escape_string($_GET['profileUid']) : '';
-    $filter = $_GET['filter'] ?? 'all'; // 'all', 'wall', 'shared'
+    $filter = $_GET['filter'] ?? 'all'; 
+    $sort = $_GET['sort'] ?? 'recent'; // Get the sort instruction
 
-    // UPDATED: Added author_pic subquery
+    // Standard Selects
     $sql = "SELECT p.*, 
             (SELECT COUNT(*) FROM likes WHERE post_id = p.id) AS likes_count,
             (SELECT COUNT(*) FROM comments WHERE post_id = p.id) AS comments_count,
-            (SELECT profile_pic FROM users WHERE uid = p.author_id) AS author_pic
-            FROM posts p WHERE 1=1 ";
+            (SELECT profile_pic FROM users WHERE uid = p.author_id) AS author_pic";
             
+    // NEW: Inject the Weighted Decay Algorithm if Trending is selected
+    if ($sort === 'trending') {
+        $sql .= ", ( 
+            ((SELECT COUNT(*) FROM likes WHERE post_id = p.id) * 2) + 
+            ((SELECT COUNT(*) FROM comments WHERE post_id = p.id) * 4) 
+        ) / POW(TIMESTAMPDIFF(HOUR, p.created_at, NOW()) + 2, 1.5) AS trending_score ";
+    }
+            
+    $sql .= " FROM posts p WHERE 1=1 ";
+            
+    // Preserve existing profile and shared filtering logic
     if ($profileUid !== '') {
         $sql .= " AND p.author_id = '$profileUid' ";
         if ($filter === 'wall') {
@@ -45,7 +56,12 @@ if ($action == 'get_feed') {
         }
     }
     
-    $sql .= " ORDER BY p.created_at DESC LIMIT ? OFFSET ?";
+    // Apply the correct Sorting
+    if ($sort === 'trending') {
+        $sql .= " ORDER BY trending_score DESC, p.created_at DESC LIMIT ? OFFSET ?";
+    } else {
+        $sql .= " ORDER BY p.created_at DESC LIMIT ? OFFSET ?";
+    }
     
     $stmt = $conn->prepare($sql);
     $stmt->bind_param("ii", $limit, $offset);
@@ -55,13 +71,10 @@ if ($action == 'get_feed') {
     $posts = [];
     while ($row = $result->fetch_assoc()) {
         $row['images'] = json_decode($row['images'], true) ?? [];
-        
-        // UPDATED: Fetch original author's picture for shared posts
         if ($row['type'] == 'share' && $row['original_post_id']) {
             $orig = $conn->query("SELECT p.author_name, p.author_role, p.content, p.images, (SELECT profile_pic FROM users WHERE uid = p.author_id) AS author_pic FROM posts p WHERE p.id = " . $row['original_post_id'])->fetch_assoc();
             $row['original'] = $orig;
         }
-        
         $row['liked_by_user'] = $uid ? ($conn->query("SELECT id FROM likes WHERE post_id = {$row['id']} AND user_id = '$uid'")->num_rows > 0) : false;
         $row['followed_by_user'] = $uid ? ($conn->query("SELECT id FROM follows WHERE follower_uid = '$uid' AND followed_uid = '{$row['author_id']}'")->num_rows > 0) : false;
         $row['created_at'] = date('c', strtotime($row['created_at']));
