@@ -175,49 +175,79 @@ function createPostElement(post) {
     div.className = 'post-card';
     div.dataset.postId = post.id;
 
-    // Smart Display Name (Dr. Prefix for doctors, remove badges)
     const displayName = post.author_role === 'doctor' ? 'Dr. ' + post.author_name : post.author_name;
+    
+    // NEW: Handle Main Profile Avatar
+    const avatarHtml = post.author_pic 
+        ? `<img src="${post.author_pic}" style="width:100%; height:100%; border-radius:50%; object-fit:cover;">` 
+        : `<i class="fas fa-user"></i>`;
 
-    // Tag
     let tagLabel = post.type === 'article' 
         ? '<span class="post-tag">Article</span>' 
         : '<span class="post-tag" style="background:#E0F2FE; color:#0284C7">Question</span>';
 
-    // Title
     let titleHtml = post.title ? `<h3>${post.title}</h3>` : '';
 
-    // Smart "See More" Truncation (Requires > 150 characters)
+    // NEW: Smart Context/Share Rendering
     let contentHtml = '';
-    if (post.content.length > 150) {
+    let imagesHtml = '';
+
+    if (post.type === 'share' && post.original) {
+        tagLabel = '<span class="post-tag" style="background:#F3F4F6; color:#4B5563"><i class="fas fa-retweet"></i> Shared</span>';
+        
+        const origAvatar = post.original.author_pic 
+            ? `<img src="${post.original.author_pic}" style="width:35px; height:35px; border-radius:50%; object-fit:cover;">` 
+            : `<div style="width:35px; height:35px; border-radius:50%; background:#E5E7EB; display:flex; align-items:center; justify-content:center; color:#9CA3AF;"><i class="fas fa-user"></i></div>`;
+
+        let origImages = '';
+        const parsedImages = typeof post.original.images === 'string' ? JSON.parse(post.original.images || '[]') : (post.original.images || []);
+        if(parsedImages && parsedImages.length > 0) {
+             origImages = `<img src="${parsedImages[0]}" style="width:100%; max-height:250px; object-fit:cover; border-radius:8px; margin-top:10px;">`;
+        }
+
         contentHtml = `
-            <div class="post-text truncated" id="text-${post.id}">${post.content}</div>
-            <button class="see-more-btn" onclick="toggleText(${post.id})">See more</button>
+            <div class="post-text" style="margin-bottom: 12px;">${post.content}</div>
+            <div class="shared-post-box" style="border: 1px solid #E5E7EB; border-radius: 12px; padding: 15px; background: #F9FAFB;">
+                <div style="display:flex; align-items:center; gap:10px; margin-bottom:10px;">
+                    ${origAvatar}
+                    <div>
+                        <div style="font-weight:600; font-size:0.9rem; color:var(--dark);">${post.original.author_name}</div>
+                        <div style="font-size:0.75rem; color:var(--gray); text-transform:capitalize;">${post.original.author_role}</div>
+                    </div>
+                </div>
+                <div style="font-size:0.9rem; color:#374151; white-space: pre-line;">${post.original.content}</div>
+                ${origImages}
+            </div>
         `;
     } else {
-        contentHtml = `<div class="post-text" id="text-${post.id}">${post.content}</div>`;
-    }
-
-    // Images
-    let imagesHtml = '';
-    if (post.images && post.images.length > 0) {
-        const firstImage = post.images[0];
-        const moreCount = post.images.length - 1;
-        imagesHtml = `<div class="post-images ${post.images.length > 1 ? 'multiple' : 'single'}" data-full="false">`;
-        imagesHtml += `<img src="${firstImage}" alt="post image" onclick="expandImages(this, ${post.id})">`;
-        if (moreCount > 0) {
-            imagesHtml += `<div class="more-overlay" onclick="expandImages(this, ${post.id})">+${moreCount} more</div>`;
+        // Standard Content Truncation
+        if (post.content.length > 150) {
+            contentHtml = `
+                <div class="post-text truncated" id="text-${post.id}">${post.content}</div>
+                <button class="see-more-btn" onclick="toggleText(${post.id})">See more</button>
+            `;
+        } else {
+            contentHtml = `<div class="post-text" id="text-${post.id}">${post.content}</div>`;
         }
-        imagesHtml += '</div>';
+
+        // Standard Images
+        if (post.images && post.images.length > 0) {
+            const firstImage = post.images[0];
+            const moreCount = post.images.length - 1;
+            imagesHtml = `<div class="post-images ${post.images.length > 1 ? 'multiple' : 'single'}" data-full="false">`;
+            imagesHtml += `<img src="${firstImage}" alt="post image" onclick="expandImages(this, ${post.id})">`;
+            if (moreCount > 0) {
+                imagesHtml += `<div class="more-overlay" onclick="expandImages(this, ${post.id})">+${moreCount} more</div>`;
+            }
+            imagesHtml += '</div>';
+        }
     }
 
-    // Follow button (don't show for own posts)
-    // C. Inline Follow Button (Icon Only)
     let followBtn = post.author_id !== currentUser.uid ? 
         `<button class="inline-follow-btn ${post.followed_by_user ? 'following' : ''}" onclick="toggleFollow('${post.author_id}', this)" title="${post.followed_by_user ? 'Following' : 'Follow'}">
             <i class="fas ${post.followed_by_user ? 'fa-user-check' : 'fa-user-plus'}"></i>
         </button>` : '';
 
-    // D. 3-Dot Options Menu
     let optionsMenu = '';
     if (post.author_id === currentUser.uid) {
         optionsMenu = `
@@ -240,19 +270,9 @@ function createPostElement(post) {
             </div>`;
     }
 
-    // Interaction bar buttons
-    const likeBtn = `<button class="action-btn ${post.liked_by_user ? 'liked' : ''}" onclick="toggleLike(${post.id}, this)">
-        <i class="${post.liked_by_user ? 'fas' : 'far'} fa-heart"></i> <span class="like-count">${post.likes_count}</span>
-    </button>`;
-    
-    const commentBtn = `<button class="action-btn" onclick="toggleComments(${post.id})">
-        <i class="far fa-comment"></i> <span class="comment-count">${post.comments_count}</span>
-    </button>`;
-
-    const answerBtn = `<button class="action-btn" onclick="toggleAnswers(${post.id})" style="color: #16A34A;">
-        <i class="fas fa-user-md"></i> <span>Answers</span>
-    </button>`;
-
+    const likeBtn = `<button class="action-btn ${post.liked_by_user ? 'liked' : ''}" onclick="toggleLike(${post.id}, this)"><i class="${post.liked_by_user ? 'fas' : 'far'} fa-heart"></i> <span class="like-count">${post.likes_count}</span></button>`;
+    const commentBtn = `<button class="action-btn" onclick="toggleComments(${post.id})"><i class="far fa-comment"></i> <span class="comment-count">${post.comments_count}</span></button>`;
+    const answerBtn = `<button class="action-btn" onclick="toggleAnswers(${post.id})" style="color: #16A34A;"><i class="fas fa-user-md"></i> <span>Answers</span></button>`;
     const shareBtn = `<button class="action-btn" onclick="sharePost(${post.id})"><i class="fas fa-share"></i></button>`;
 
     let answerInputHtml = currentUser.role === 'doctor' ? `
@@ -262,13 +282,12 @@ function createPostElement(post) {
         </div>` : 
         `<div style="font-size: 0.85rem; color: var(--gray); margin-bottom: 10px; font-style: italic;">Only verified doctors can provide answers.</div>`;
 
-    // Added Pin Indicator if pinned
     const pinBadge = post.is_pinned == 1 ? `<span class="pin-badge"><i class="fas fa-thumbtack"></i> Pinned</span>` : '';
 
     div.innerHTML = `
         <div class="post-header">
             <div class="user-info">
-                <div class="avatar" style="cursor:pointer;" onclick="openProfile('${post.author_id}')"><i class="fas fa-user"></i></div>
+                <div class="avatar" style="cursor:pointer; padding:0; overflow:hidden;" onclick="openProfile('${post.author_id}')">${avatarHtml}</div>
                 <div class="meta">
                     <h4 style="display:flex; align-items:center; gap:8px; cursor:pointer;" onclick="openProfile('${post.author_id}')">
                         ${displayName} ${followBtn}
