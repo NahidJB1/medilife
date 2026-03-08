@@ -23,7 +23,8 @@
 
         <div class="nav-items">
             <div class="nav-item active" onclick="switchMainTab(this, 'home')"><i class="fas fa-home"></i> Home</div>
-            <div class="nav-item" onclick="window.location.href='community.html'"><i class="fas fa-users"></i> Community</div>
+            <div class="nav-item" onclick="switchMainTab(this, 'community')"><i class="fas fa-users"></i> Community</div>
+            <div class="nav-item" onclick="switchMainTab(this, 'notifications')"><i class="fas fa-bell"></i> Notifications</div>
         </div>
 
 <div class="user-mini-profile" onclick="window.location.href='profile.html'" style="cursor: pointer;">
@@ -50,6 +51,7 @@
         <div class="dashboard-tabs" id="mainTabs">
             <div class="tab-item active" onclick="switchMainTab(this, 'home')"><i class="fas fa-home"></i> Home</div>
             <div class="tab-item" onclick="switchMainTab(this, 'community')"><i class="fas fa-users"></i> Community</div>
+            <div class="tab-item" onclick="switchMainTab(this, 'notifications')"><i class="fas fa-bell"></i> Notifications</div>
         </div>
 
         <div id="tabContentArea">
