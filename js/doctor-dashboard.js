@@ -38,32 +38,44 @@ fetch(`${API_BASE}users.php`, { method: 'POST', body: formData });
 
 // --- TAB SWITCHING ---
 function switchMainTab(el, tabName) {
+    // 1. Remove active class from all navs and tabs
     document.querySelectorAll('.tab-item, .nav-item').forEach(t => t.classList.remove('active'));
-    if(el) el.classList.add('active');
     
-    // Sync Sidebar & Top Tabs
-    const allNavs = document.querySelectorAll('.nav-item');
-    if(tabName === 'home') allNavs[0].classList.add('active');
-    if(tabName === 'community') allNavs[1].classList.add('active');
+    // 2. Add active class to both the sidebar item and top tab that match the clicked tabName
+    document.querySelectorAll(`.nav-item[onclick*="'${tabName}'"], .tab-item[onclick*="'${tabName}'"]`).forEach(node => node.classList.add('active'));
 
     const contentArea = document.getElementById('tabContentArea');
 
-    if (tabName === 'home') {
-        // Stop Community Polling if active
-        if(window.feedInterval) clearInterval(window.feedInterval);
-        
-        contentArea.innerHTML = `
-        <div class="action-section">
-            <div class="section-title">Quick Actions</div>
-            <div class="quick-actions">
-                <div class="action-card" onclick="openAppointmentList('pending')"><i class="fas fa-calendar-check" style="color:#F59E0B"></i><h4>Requests</h4><p>Pending Approvals</p></div>
-                <div class="action-card" onclick="openAppointmentList('accepted')"><i class="fas fa-clipboard-list"></i><h4>View Bookings</h4><p>Confirmed Patients</p></div>
-                <div class="action-card" onclick="openPatientSearch()"><i class="fas fa-user-injured"></i><h4>Find Patient</h4><p>View History & Prescribe</p></div>
-            </div>
-        </div>`;
-    } else if (tabName === 'community') {
-        loadCommunityFeed(contentArea);
-    }
+    // Stop Community Polling if active
+    if(window.feedInterval) clearInterval(window.feedInterval);
+
+    // Fade out animation for smooth transition
+    contentArea.style.opacity = '0';
+    
+    setTimeout(() => {
+        if (tabName === 'home') {
+            // Note: Keep the innerHTML exactly as you have it for your specific dashboard's Home view. 
+            // Do not delete your action cards! Just paste your existing home HTML here.
+            contentArea.innerHTML = document.getElementById('actionGrid') ? 
+                `<div class="action-section"><div class="section-title">Quick Actions</div><div class="quick-actions" id="actionGrid">${document.getElementById('actionGrid').innerHTML}</div></div>` : 
+                contentArea.innerHTML; // Fallback to preserve state
+                
+        } else if (tabName === 'community') {
+            loadCommunityFeed(contentArea);
+        } else if (tabName === 'notifications') {
+            contentArea.innerHTML = `
+            <div class="action-section" style="animation: slideUp 0.5s ease-out;">
+                <div class="section-title">Notifications</div>
+                <div style="background:white; padding:3rem; border-radius:16px; text-align:center; border: 1px solid #E5E7EB;">
+                    <i class="fas fa-bell-slash" style="font-size: 3rem; color: #D1D5DB; margin-bottom: 15px;"></i>
+                    <h3 style="color: var(--gray);">You're all caught up!</h3>
+                    <p style="color: #9CA3AF; font-size: 0.9rem;">No new notifications right now.</p>
+                </div>
+            </div>`;
+        }
+        contentArea.style.opacity = '1';
+        contentArea.style.transition = 'opacity 0.3s ease-in-out';
+    }, 150);
 }
 
 // --- APPOINTMENTS ---
@@ -295,18 +307,24 @@ function handleDocUpload(input) {
 
 // --- COMMUNITY FEED (Auto-Refresh) ---
 function loadCommunityFeed(container) {
+    // Dynamically fetch the current user's avatar from the sidebar
+    const currentAvatarSrc = document.getElementById('sideAvatar').src;
+
     container.innerHTML = `
-        <div class="create-post-card">
-            <textarea id="newPostText" class="cp-input-area" style="width:100%; border:none; outline:none;" placeholder="Share a health tip..."></textarea>
-            <div style="text-align:right; margin-top:10px;">
-                <button class="list-btn btn-book" onclick="publishPost()">Post</button>
+        <div class="create-post-card" style="display: flex; gap: 15px; align-items: flex-start;">
+            <img src="${currentAvatarSrc}" class="mini-avatar" style="width: 50px; height: 50px; cursor: pointer; transition: 0.2s;" onclick="window.location.href='profile.html'" title="Go to My Profile" onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'">
+            
+            <div style="flex: 1;">
+                <textarea id="newPostText" class="cp-input-area" style="width:100%; border:1px solid #E5E7EB; border-radius: 12px; background: #F9FAFB; padding: 15px; outline:none; font-size: 1rem; transition: 0.3s;" placeholder="What health question is on your mind?" onfocus="this.style.borderColor='var(--primary)'; this.style.background='white';"></textarea>
+                <div style="text-align:right; margin-top:10px;">
+                    <button class="list-btn btn-book" onclick="publishPost()"><i class="fas fa-paper-plane"></i> Post</button>
+                </div>
             </div>
         </div>
-        <div id="feedStream">Loading...</div>
+        <div id="feedStream">Loading feed...</div>
     `;
     
     fetchPosts(); // Initial Load
-    // Set polling interval for "Real-Time" feel
     window.feedInterval = setInterval(fetchPosts, 5000); 
 }
 
