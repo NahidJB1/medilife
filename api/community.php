@@ -29,9 +29,11 @@ if ($action == 'get_feed') {
     $profileUid = isset($_GET['profileUid']) ? $conn->real_escape_string($_GET['profileUid']) : '';
     $filter = $_GET['filter'] ?? 'all'; // 'all', 'wall', 'shared'
 
+    // UPDATED: Added author_pic subquery
     $sql = "SELECT p.*, 
             (SELECT COUNT(*) FROM likes WHERE post_id = p.id) AS likes_count,
-            (SELECT COUNT(*) FROM comments WHERE post_id = p.id) AS comments_count
+            (SELECT COUNT(*) FROM comments WHERE post_id = p.id) AS comments_count,
+            (SELECT profile_pic FROM users WHERE uid = p.author_id) AS author_pic
             FROM posts p WHERE 1=1 ";
             
     if ($profileUid !== '') {
@@ -53,10 +55,13 @@ if ($action == 'get_feed') {
     $posts = [];
     while ($row = $result->fetch_assoc()) {
         $row['images'] = json_decode($row['images'], true) ?? [];
+        
+        // UPDATED: Fetch original author's picture for shared posts
         if ($row['type'] == 'share' && $row['original_post_id']) {
-            $orig = $conn->query("SELECT author_name, author_role, content, images FROM posts WHERE id = " . $row['original_post_id'])->fetch_assoc();
+            $orig = $conn->query("SELECT p.author_name, p.author_role, p.content, p.images, (SELECT profile_pic FROM users WHERE uid = p.author_id) AS author_pic FROM posts p WHERE p.id = " . $row['original_post_id'])->fetch_assoc();
             $row['original'] = $orig;
         }
+        
         $row['liked_by_user'] = $uid ? ($conn->query("SELECT id FROM likes WHERE post_id = {$row['id']} AND user_id = '$uid'")->num_rows > 0) : false;
         $row['followed_by_user'] = $uid ? ($conn->query("SELECT id FROM follows WHERE follower_uid = '$uid' AND followed_uid = '{$row['author_id']}'")->num_rows > 0) : false;
         $row['created_at'] = date('c', strtotime($row['created_at']));
