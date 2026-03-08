@@ -44,13 +44,17 @@ function initCommunity() {
         profileLink.href = `community-profile.html?uid=${currentUser.uid}`;
     }
 
-    // Show article tab only for doctors
-    if (role === 'doctor') {
-        document.getElementById('tabArticle').classList.remove('hidden');
+    // Show article tab only for doctors (Null-safe)
+    const tabArticle = document.getElementById('tabArticle');
+    if (tabArticle && role === 'doctor') {
+        tabArticle.classList.remove('hidden');
     }
 
-    // Image upload preview
-    document.getElementById('postImages').addEventListener('change', handleImagePreview);
+    // Image upload preview (Null-safe)
+    const postImages = document.getElementById('postImages');
+    if (postImages) {
+        postImages.addEventListener('change', handleImagePreview);
+    }
 
     // Load initial feed
     loadFeed(true);
@@ -713,10 +717,12 @@ function toggleNotifications(e) {
 }
 
 async function fetchNotifications() {
+    const dropdown = document.getElementById('notifDropdown');
+    if (!dropdown) return; // Exit safely if the notification UI doesn't exist on this page
+
     try {
         const res = await fetch(`${API_URL}?action=get_notifications&uid=${currentUser.uid}`);
         const notifs = await res.json();
-        const dropdown = document.getElementById('notifDropdown');
         
         if(notifs.length === 0) {
             dropdown.innerHTML = '<div style="padding: 15px; text-align: center; color: var(--gray);">No notifications yet.</div>';
