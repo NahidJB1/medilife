@@ -6,7 +6,8 @@
     <title>Profile | MEDeLIFE</title>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-    <link rel="stylesheet" href="css/community.css"> <link rel="stylesheet" href="css/profile.css">
+    <link rel="stylesheet" href="css/community.css">
+    <link rel="stylesheet" href="css/community-profile.css">
 </head>
 <body>
     <nav class="navbar">
@@ -32,88 +33,87 @@
         </ul>
     </nav>
 
-    <div class="main-container profile-container">
-        <div class="profile-header-card animate-fade-in">
-            <div class="cover-photo"></div>
-            <div class="profile-info-wrapper">
+    <div class="main-container profile-layout">
+        <div class="profile-main">
+            <div class="profile-intro animate-fade-in">
                 <div class="profile-avatar-large"><i class="fas fa-user"></i></div>
-                <div class="profile-actions" id="profileActionsBox">
-                    </div>
+                <div class="profile-titles">
+                    <h1 id="profileName">Loading...</h1>
+                    <span class="role-badge" id="profileRole">Role</span>
+                </div>
+                <div class="profile-stats">
+                    <span id="followerCount">0 Followers</span> • <span id="followingCount">0 Following</span>
+                </div>
+                <p class="profile-bio" id="profileBio">Write a description about yourself...</p>
+                
+                <div class="profile-tabs">
+                    <div class="p-tab active">Profile Wall</div>
+                    <div class="p-tab">Answers</div>
+                    <div class="p-tab">Questions</div>
+                </div>
             </div>
-            <div class="profile-text-details">
-                <h1 id="profileName">Loading...</h1>
-                <span class="role-badge" id="profileRole">Role</span>
-                <p class="profile-bio" id="profileBio"></p>
-                
-                <div class="profile-meta-grid" id="profileMetaGrid">
-                    </div>
-                
-                <div class="social-links-bar" id="profileSocialLinks">
-                    </div>
+
+            <div id="feedContainer">
+                <div class="loading-spinner"><i class="fas fa-spinner fa-spin"></i> Loading timeline...</div>
             </div>
         </div>
 
-        <div class="feed-header">
-            <h3><i class="fas fa-stream"></i> Wall Posts</h3>
-        </div>
-        <div id="feedContainer">
-            <div class="loading-spinner"><i class="fas fa-spinner fa-spin"></i> Loading timeline...</div>
+        <div class="profile-sidebar animate-fade-in">
+            <div class="sidebar-section">
+                <div class="section-header">
+                    <h3>Credentials & Highlights</h3>
+                    <button class="icon-btn edit-btn" id="editCredBtn" style="display:none;" onclick="openEditModal()"><i class="fas fa-pen"></i></button>
+                </div>
+                <div class="cred-list" id="profileMetaGrid">
+                    <div style="color:var(--gray); font-size: 0.85rem;">Loading credentials...</div>
+                </div>
+            </div>
+            
+            <div class="sidebar-section">
+                <div class="section-header">
+                    <h3>Social Links</h3>
+                </div>
+                <div class="cred-list" id="profileSocialLinks">
+                    </div>
+            </div>
         </div>
     </div>
 
     <div class="modal-overlay" id="editProfileModal">
         <div class="modal-content">
             <div class="modal-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; border-bottom: 1px solid #eee; padding-bottom: 10px;">
-                <h2>Edit Profile</h2>
+                <h2>Edit Profile Info</h2>
                 <button class="btn-close" onclick="closeEditModal()" style="background: none; border: none; font-size: 1.2rem; cursor: pointer;"><i class="fas fa-times"></i></button>
             </div>
             
             <div class="form-group">
-                <label>Bio</label>
-                <textarea id="editBio" rows="3" placeholder="Tell the community about yourself..."></textarea>
+                <label>Bio (Describe yourself)</label>
+                <textarea id="editBio" rows="3" placeholder="I am a medical professional specializing in..."></textarea>
             </div>
             
             <div class="form-group-flex">
-                <div class="flex-input">
-                    <label>Location</label>
-                    <input type="text" id="editLocation" placeholder="e.g. Kuala Lumpur">
-                </div>
+                <div class="flex-input"><label>Location</label><input type="text" id="editLocation" placeholder="e.g. Kuala Lumpur, Malaysia"></div>
                 <select id="privLocation" class="privacy-select"><option value="public">Public</option><option value="private">Only Me</option></select>
             </div>
             
             <div class="form-group-flex">
-                <div class="flex-input">
-                    <label>Education</label>
-                    <input type="text" id="editEducation" placeholder="e.g. City University Malaysia">
-                </div>
+                <div class="flex-input"><label>Education</label><input type="text" id="editEducation" placeholder="e.g. MD from Oxford"></div>
                 <select id="privEducation" class="privacy-select"><option value="public">Public</option><option value="private">Only Me</option></select>
             </div>
 
             <div class="form-group-flex">
-                <div class="flex-input">
-                    <label>Profession</label>
-                    <input type="text" id="editProfession" placeholder="e.g. Software Developer">
-                </div>
+                <div class="flex-input"><label>Profession</label><input type="text" id="editProfession" placeholder="e.g. Cardiologist"></div>
                 <select id="privProfession" class="privacy-select"><option value="public">Public</option><option value="private">Only Me</option></select>
             </div>
             
             <div class="form-group-flex">
-                <div class="flex-input">
-                    <label><i class="fab fa-facebook" style="color:#1877F2"></i> Facebook Link</label>
-                    <input type="text" id="editFb" placeholder="https://facebook.com/yourprofile">
-                </div>
+                <div class="flex-input"><label><i class="fab fa-facebook" style="color:#1877F2"></i> Facebook URL</label><input type="text" id="editFb" placeholder="https://facebook.com/..."></div>
             </div>
             <div class="form-group-flex">
-                <div class="flex-input">
-                    <label><i class="fab fa-instagram" style="color:#E4405F"></i> Instagram Link</label>
-                    <input type="text" id="editInsta" placeholder="https://instagram.com/yourprofile">
-                </div>
+                <div class="flex-input"><label><i class="fab fa-instagram" style="color:#E4405F"></i> Instagram URL</label><input type="text" id="editInsta" placeholder="https://instagram.com/..."></div>
             </div>
             <div class="form-group-flex" style="margin-bottom: 20px;">
-                <div class="flex-input">
-                    <label><i class="fab fa-x-twitter"></i> X (Twitter) Link</label>
-                    <input type="text" id="editX" placeholder="https://x.com/yourprofile">
-                </div>
+                <div class="flex-input"><label><i class="fab fa-x-twitter"></i> X (Twitter) URL</label><input type="text" id="editX" placeholder="https://x.com/..."></div>
                 <select id="privSocial" class="privacy-select" style="align-self: flex-end; margin-bottom: 2px;"><option value="public">Public Links</option><option value="private">Only Me</option></select>
             </div>
 
