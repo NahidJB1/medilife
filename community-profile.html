@@ -19,6 +19,15 @@
         <ul class="nav-links">
             <li><a href="dashboard.html" title="Dashboard"><i class="fas fa-home"></i></a></li>
             <li><a href="community.html" title="Community"><i class="fas fa-users"></i></a></li>
+            <li class="nav-item-relative">
+                <a href="#" title="Notifications" onclick="toggleNotifications(event)">
+                    <i class="fas fa-bell"></i>
+                    <span class="notification-badge" id="notifBadge" style="display:none;">0</span>
+                </a>
+                <div class="notifications-dropdown" id="notifDropdown">
+                    <div style="padding: 15px; text-align: center; color: var(--gray);">Loading...</div>
+                </div>
+            </li>
             <li><a href="#" class="active" title="Profile"><i class="fas fa-user-circle"></i></a></li>
         </ul>
     </nav>
@@ -115,6 +124,6 @@
     <div id="toast-box"><i class="fas fa-info-circle"></i> <span id="toast-msg"></span></div>
 
     <script src="js/community.js"></script>
-    <script src="js/profile.js"></script>
+    <script src="js/community-profile.js"></script>
 </body>
 </html>
