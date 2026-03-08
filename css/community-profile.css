@@ -1,69 +1,79 @@
-.profile-container { max-width: 800px; margin: 100px auto 40px; }
-
-.profile-header-card {
-    background: white; border-radius: 16px; overflow: hidden;
-    box-shadow: var(--shadow); border: 1px solid #E5E7EB; margin-bottom: 2rem;
+/* Quora-Style Profile Layout */
+.profile-layout { 
+    max-width: 1000px; margin: 100px auto 40px;
+    display: grid; grid-template-columns: 1fr 320px; gap: 2rem;
 }
 
-.cover-photo {
-    height: 180px; background: linear-gradient(135deg, #EF4444 0%, #FCA5A5 100%);
-    width: 100%; position: relative;
-}
-
-.profile-info-wrapper {
-    display: flex; justify-content: space-between; align-items: flex-end;
-    padding: 0 2rem; margin-top: -50px; position: relative;
-}
+/* Left Column: Intro & Content */
+.profile-main { display: flex; flex-direction: column; }
+.profile-intro { margin-bottom: 1.5rem; }
 
 .profile-avatar-large {
-    width: 120px; height: 120px; border-radius: 50%; border: 4px solid white;
+    width: 120px; height: 120px; border-radius: 50%; border: 2px solid #E5E7EB;
     background: #F3F4F6; display: flex; align-items: center; justify-content: center;
-    font-size: 3rem; color: #9CA3AF; box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    font-size: 3rem; color: #9CA3AF; margin-bottom: 15px;
 }
 
-.btn-edit-profile {
-    background: white; border: 1px solid #E5E7EB; padding: 8px 16px;
-    border-radius: 20px; font-weight: 600; cursor: pointer; transition: 0.2s;
-    font-size: 0.9rem; margin-bottom: 10px;
+.profile-titles { display: flex; align-items: center; gap: 12px; margin-bottom: 8px; }
+.profile-titles h1 { font-size: 1.8rem; color: var(--dark); font-weight: 700; margin: 0; }
+
+.profile-stats { font-size: 0.95rem; color: var(--gray); font-weight: 500; margin-bottom: 15px; }
+.profile-stats span { color: var(--dark); font-weight: 600; }
+
+.profile-bio { 
+    font-size: 0.95rem; color: #374151; margin-bottom: 25px; 
+    line-height: 1.6; white-space: pre-line; max-width: 90%;
 }
-.btn-edit-profile:hover { background: #F3F4F6; }
 
-.profile-text-details { padding: 1rem 2rem 2rem; }
-.profile-text-details h1 { font-size: 1.8rem; margin-bottom: 5px; color: var(--dark); }
-.profile-bio { margin: 15px 0; color: #4B5563; line-height: 1.6; }
+/* Profile Content Tabs */
+.profile-tabs { 
+    display: flex; gap: 20px; border-bottom: 1px solid #E5E7EB; 
+    margin-bottom: 20px; overflow-x: auto;
+}
+.p-tab { 
+    padding: 10px 0; font-size: 0.95rem; color: var(--gray); font-weight: 600; 
+    cursor: pointer; border-bottom: 3px solid transparent; transition: 0.2s; white-space: nowrap;
+}
+.p-tab:hover { color: var(--dark); }
+.p-tab.active { color: var(--primary); border-bottom-color: var(--primary); }
 
-.profile-meta-grid { display: flex; flex-wrap: wrap; gap: 15px; margin-bottom: 15px; }
-.meta-item { display: flex; align-items: center; gap: 6px; color: #6B7280; font-size: 0.9rem; }
+/* Right Column: Sidebar Credentials */
+.profile-sidebar { display: flex; flex-direction: column; gap: 1.5rem; }
 
-.social-links-bar { display: flex; gap: 15px; }
-.social-links-bar a { color: #6B7280; font-size: 1.2rem; transition: 0.2s; }
-.social-links-bar a:hover { color: var(--primary); transform: translateY(-2px); }
+.sidebar-section { 
+    background: transparent; padding: 0; 
+}
+.section-header { 
+    display: flex; justify-content: space-between; align-items: center; 
+    border-bottom: 1px solid #E5E7EB; padding-bottom: 8px; margin-bottom: 12px;
+}
+.section-header h3 { font-size: 1rem; color: var(--dark); margin: 0; font-weight: 600; }
+.icon-btn { 
+    background: none; border: none; color: var(--gray); cursor: pointer; 
+    font-size: 0.9rem; padding: 6px; border-radius: 50%; transition: 0.2s;
+}
+.icon-btn:hover { background: #E5E7EB; color: var(--dark); }
 
-.feed-header { border-bottom: 2px solid #E5E7EB; padding-bottom: 10px; margin-bottom: 20px; }
-.feed-header h3 { color: var(--dark); }
+.cred-list { display: flex; flex-direction: column; gap: 12px; }
+.cred-item { display: flex; align-items: flex-start; gap: 12px; font-size: 0.9rem; color: #4B5563; line-height: 1.4; }
+.cred-item i { color: var(--gray); font-size: 1.1rem; width: 20px; text-align: center; margin-top: 2px; }
+.cred-item a { color: var(--primary); text-decoration: none; font-weight: 500;}
+.cred-item a:hover { text-decoration: underline; }
 
-/* Form Elements */
+/* Modal Form Styles */
 .form-group { margin-bottom: 15px; }
 .form-group label { display: block; font-size: 0.85rem; color: var(--gray); margin-bottom: 5px; font-weight: 500; }
-.form-group textarea, .form-group input { 
-    width: 100%; border: 1px solid #D1D5DB; padding: 10px; border-radius: 8px; font-family: inherit;
-}
+.form-group textarea, .form-group input { width: 100%; border: 1px solid #D1D5DB; padding: 10px; border-radius: 8px; font-family: inherit;}
 .form-group-flex { display: flex; gap: 10px; margin-bottom: 15px; align-items: center; }
 .flex-input { flex: 1; }
 .flex-input label { display: block; font-size: 0.85rem; color: var(--gray); margin-bottom: 5px; font-weight: 500;}
 .flex-input input { width: 100%; border: 1px solid #D1D5DB; padding: 10px; border-radius: 8px; }
-.privacy-select { 
-    padding: 8px; border-radius: 8px; border: 1px solid #D1D5DB; 
-    background: #F9FAFB; font-size: 0.8rem; outline: none; margin-top: 20px;
-}
-
+.privacy-select { padding: 8px; border-radius: 8px; border: 1px solid #D1D5DB; background: #F9FAFB; font-size: 0.8rem; outline: none; margin-top: 20px;}
 .animate-fade-in { animation: fadeIn 0.4s cubic-bezier(0.4, 0, 0.2, 1); }
 
-@media (max-width: 600px) {
-    .profile-info-wrapper { padding: 0 1rem; flex-direction: column; align-items: center; text-align: center; }
-    .profile-avatar-large { margin-bottom: 15px; }
-    .profile-text-details { text-align: center; padding: 1rem; }
-    .profile-meta-grid { justify-content: center; }
-    .social-links-bar { justify-content: center; }
-    .btn-edit-profile { position: absolute; top: 10px; right: 10px; background: rgba(255,255,255,0.9); }
+/* Mobile Optimization */
+@media (max-width: 800px) {
+    .profile-layout { grid-template-columns: 1fr; gap: 1rem; }
+    .profile-sidebar { margin-top: 10px; padding: 1.5rem; background: white; border-radius: 12px; border: 1px solid #E5E7EB;}
+    .profile-bio { max-width: 100%; }
 }
