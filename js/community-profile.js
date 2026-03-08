@@ -1,4 +1,5 @@
 let targetProfileUid = new URLSearchParams(window.location.search).get('uid');
+let currentTab = 'wall';
 
 window.onload = () => {
     if (!localStorage.getItem('isLoggedIn')) { window.location.href = 'login.html'; return; }
@@ -11,7 +12,7 @@ window.onload = () => {
     if(!targetProfileUid) targetProfileUid = currentUser.uid;
 
     loadProfileData();
-    loadProfileFeed('wall'); // Default to wall
+    loadProfileFeed('wall');
 };
 
 async function loadProfileData() {
@@ -23,40 +24,37 @@ async function loadProfileData() {
             const p = data.profile;
             document.getElementById('profileName').innerText = p.name;
             
-            // Sync Avatar logic
-            if (p.profile_pic) {
-                document.getElementById('profileDisplayPic').src = p.profile_pic;
-                document.getElementById('profileDisplayPic').style.display = 'block';
-                document.getElementById('profileDefaultIcon').style.display = 'none';
-            }
-
             const roleBadge = document.getElementById('profileRole');
             roleBadge.innerText = p.role.charAt(0).toUpperCase() + p.role.slice(1);
             roleBadge.className = `role-badge role-${p.role}`;
+            
+            // Show Answers tab only if doctor
+            if (p.role === 'doctor') document.getElementById('tabAnswers').style.display = 'block';
 
-            // Hide Answers tab if target user is not a doctor
-            if (p.role !== 'doctor') document.getElementById('tabAnswers').style.display = 'none';
+            // Sync Avatar
+            const imgEl = document.getElementById('profileImage');
+            const iconEl = document.getElementById('profileIconPlaceholder');
+            if (p.profile_pic) {
+                imgEl.src = p.profile_pic;
+                imgEl.style.display = 'block';
+                iconEl.style.display = 'none';
+            }
             
-            document.getElementById('followerCount').innerHTML = `<span style="color:var(--dark); font-weight:600;">${p.followers_count || 0}</span> Followers`;
-            document.getElementById('followingCount').innerHTML = `<span style="color:var(--dark); font-weight:600;">${p.following_count || 0}</span> Following`;
-            
+            document.getElementById('followerCount').innerHTML = `<span>${p.followers_count || 0}</span>`;
+            document.getElementById('followingCount').innerHTML = `<span>${p.following_count || 0}</span>`;
             document.getElementById('profileBio').innerText = p.bio || 'This user has not written a bio yet.';
             
-            // Build Personal Details
+            // Build Personal Details Grid
             let metaHtml = '';
             if(p.profession) metaHtml += `<div class="cred-item"><i class="fas fa-briefcase"></i> <div>Works as <strong>${p.profession}</strong></div></div>`;
             if(p.education) metaHtml += `<div class="cred-item"><i class="fas fa-graduation-cap"></i> <div>Studied at <strong>${p.education}</strong></div></div>`;
             if(p.location) metaHtml += `<div class="cred-item"><i class="fas fa-map-marker-alt"></i> <div>Lives in <strong>${p.location}</strong></div></div>`;
-            if(p.languages) metaHtml += `<div class="cred-item"><i class="fas fa-language"></i> <div>Speaks <strong>${p.languages}</strong></div></div>`;
+            if(p.languages) metaHtml += `<div class="cred-item"><i class="fas fa-language"></i> <div>Knows <strong>${p.languages}</strong></div></div>`;
+            if(p.join_month_year) metaHtml += `<div class="cred-item"><i class="fas fa-calendar-alt"></i> <div>Joined <strong>${p.join_month_year}</strong></div></div>`;
             
-            // Joined Date Formatting
-            const joinDate = new Date(p.joined_date);
-            const formattedDate = joinDate.toLocaleString('default', { month: 'long', year: 'numeric' });
-            metaHtml += `<div class="cred-item"><i class="far fa-calendar-alt"></i> <div>Joined <strong>${formattedDate}</strong></div></div>`;
-
             document.getElementById('profileMetaGrid').innerHTML = metaHtml;
             
-            // Build Socials
+            // Build Socials Grid
             let socialHtml = '';
             const links = JSON.parse(p.social_links || '{}');
             if(links.fb) socialHtml += `<div class="cred-item"><i class="fab fa-facebook" style="color:#1877F2"></i> <a href="${links.fb}" target="_blank">Facebook Profile</a></div>`;
@@ -64,120 +62,125 @@ async function loadProfileData() {
             if(links.x) socialHtml += `<div class="cred-item"><i class="fab fa-x-twitter" style="color:#000"></i> <a href="${links.x}" target="_blank">X (Twitter) Profile</a></div>`;
             if(links.yt) socialHtml += `<div class="cred-item"><i class="fab fa-youtube" style="color:#FF0000"></i> <a href="${links.yt}" target="_blank">YouTube Channel</a></div>`;
             
-            if (socialHtml === '') socialHtml = '<div style="color:var(--gray); font-size:0.85rem;">No social links connected.</div>';
+            if (socialHtml === '') socialHtml = '<div style="color:var(--gray); font-size:0.85rem;">No social links available.</div>';
             document.getElementById('profileSocialLinks').innerHTML = socialHtml;
 
-            // Setup Owner Controls
+            // Setup Owner Privileges
             if (targetProfileUid === currentUser.uid) {
                 document.getElementById('editCredBtn').style.display = 'block';
-                document.getElementById('avatarOverlay').style.display = 'flex'; // Show camera icon
+                document.getElementById('avatarUploadBtn').style.display = 'flex';
+                document.getElementById('profileBio').insertAdjacentHTML('beforeend', ` <button class="icon-btn" onclick="openEditModal()"><i class="fas fa-pen"></i></button>`);
                 populateEditForm(p, links, JSON.parse(p.privacy_settings || '{}'));
             }
         }
     } catch (e) { showToast('Error loading profile'); }
 }
 
-// --- AVATAR UPLOAD SYNC ---
-async function uploadAvatar(input) {
-    if (!input.files[0]) return;
-    const fd = new FormData();
-    fd.append('action', 'update_profile'); // Hits users.php to sync across app
-    fd.append('uid', currentUser.uid);
-    fd.append('profile_pic', input.files[0]);
-
-    showToast('Uploading photo...');
-    try {
-        const res = await fetch('api/users.php', { method: 'POST', body: fd });
-        const data = await res.json();
-        if(data.status === 'success') {
-            showToast('Profile photo updated!');
-            loadProfileData(); // Reloads the new image
-        } else showToast('Error uploading photo');
-    } catch (e) { showToast('Network error'); }
-}
-
-// --- TAB SWITCHING & FEED RENDERING ---
-function switchProfileTab(tabType, element) {
+// --- TABS LOGIC ---
+function switchProfileTab(tab, element) {
     document.querySelectorAll('.p-tab').forEach(t => t.classList.remove('active'));
     element.classList.add('active');
+    currentTab = tab;
     
-    if (tabType === 'answers') loadUserAnswers();
-    else loadProfileFeed(tabType); // 'wall' or 'shared'
+    if (tab === 'answers') loadProfileAnswers();
+    else loadProfileFeed(tab);
 }
 
-async function loadProfileFeed(type) {
+async function loadProfileFeed(filterType) {
     const feed = document.getElementById('feedContainer');
     feed.innerHTML = '<div class="loading-spinner"><i class="fas fa-spinner fa-spin"></i> Loading...</div>';
     try {
-        const res = await fetch(`${API_URL}?action=get_feed&uid=${currentUser.uid}&profileUid=${targetProfileUid}&postType=${type}&limit=20&offset=0`);
+        const res = await fetch(`${API_URL}?action=get_feed&uid=${currentUser.uid}&profileUid=${targetProfileUid}&filter=${filterType}&limit=20&offset=0`);
         const posts = await res.json();
         feed.innerHTML = '';
         if(posts.length === 0) {
-            feed.innerHTML = `<div style="text-align:center; color:var(--gray); padding: 40px; border:1px solid #E5E7EB; border-radius:12px; background:white;">No activity found in this tab.</div>`;
+            feed.innerHTML = `<div style="text-align:center; color:var(--gray); padding: 40px; border:1px solid #E5E7EB; border-radius:12px; background:white;">No ${filterType} posts yet.</div>`;
             return;
         }
         posts.forEach(post => feed.appendChild(createPostElement(post))); 
     } catch(e) { feed.innerHTML = `<div style="color:red; text-align:center;">Failed to load posts</div>`; }
 }
 
-async function loadUserAnswers() {
+async function loadProfileAnswers() {
     const feed = document.getElementById('feedContainer');
     feed.innerHTML = '<div class="loading-spinner"><i class="fas fa-spinner fa-spin"></i> Loading answers...</div>';
     try {
-        const res = await fetch(`${API_URL}?action=get_user_answers&uid=${targetProfileUid}`);
+        const res = await fetch(`${API_URL}?action=get_user_answers&targetUid=${targetProfileUid}`);
         const answers = await res.json();
         feed.innerHTML = '';
         if(answers.length === 0) {
             feed.innerHTML = `<div style="text-align:center; color:var(--gray); padding: 40px; border:1px solid #E5E7EB; border-radius:12px; background:white;">No answers provided yet.</div>`;
             return;
         }
+        
         answers.forEach(ans => {
-            feed.innerHTML += `
-                <div class="post-card" style="margin-bottom: 15px;">
-                    <div style="font-size:0.85rem; color:var(--gray); margin-bottom:10px;">Answered a question:</div>
-                    <div style="background:#F9FAFB; padding:10px; border-left:3px solid #E5E7EB; margin-bottom:15px;">
-                        ${ans.post_title ? `<strong>${ans.post_title}</strong><br>` : ''}
-                        <span style="color:#4B5563;">${ans.post_content.substring(0, 100)}...</span>
-                    </div>
-                    <div style="display:flex; gap:10px; align-items:start;">
-                        <i class="fas fa-user-md" style="color:#16A34A; margin-top:3px;"></i>
-                        <div><strong>Dr. ${document.getElementById('profileName').innerText}</strong><br><span style="color:#374151;">${ans.answer_content}</span></div>
-                    </div>
-                </div>`;
+            const div = document.createElement('div');
+            div.className = 'post-card';
+            div.innerHTML = `
+                <div style="font-size: 0.85rem; color: var(--gray); margin-bottom: 8px;">Answered on a post: <strong>${ans.post_title || 'Question'}</strong></div>
+                <div style="padding: 10px; background: #F9FAFB; border-left: 3px solid #E5E7EB; margin-bottom: 10px; font-style: italic; color: #6B7280;">"${ans.post_content}"</div>
+                <div style="color: #16A34A; font-weight: 500;"><i class="fas fa-user-md"></i> Dr. Response:</div>
+                <div style="margin-top: 5px;">${ans.content}</div>
+                <div style="font-size: 0.75rem; color: var(--gray); margin-top: 10px;">${timeAgo(ans.created_at)}</div>
+            `;
+            feed.appendChild(div);
         });
     } catch(e) { feed.innerHTML = `<div style="color:red; text-align:center;">Failed to load answers</div>`; }
 }
 
-// --- FOLLOWERS MODAL ---
-async function openFollowList(type) {
+// --- FOLLOW LISTS LOGIC ---
+async function openFollowModal(type) {
     document.getElementById('followModalTitle').innerText = type.charAt(0).toUpperCase() + type.slice(1);
-    document.getElementById('followListModal').classList.add('active');
+    document.getElementById('followModal').classList.add('active');
     const container = document.getElementById('followListContainer');
-    container.innerHTML = '<div style="text-align:center; padding:20px;"><i class="fas fa-spinner fa-spin"></i></div>';
-
+    container.innerHTML = '<div style="text-align:center;"><i class="fas fa-spinner fa-spin"></i></div>';
+    
     try {
-        const res = await fetch(`${API_URL}?action=get_follow_list&uid=${targetProfileUid}&type=${type}`);
+        const res = await fetch(`${API_URL}?action=get_follow_list&targetUid=${targetProfileUid}&type=${type}`);
         const users = await res.json();
-        if(users.length === 0) {
-            container.innerHTML = `<div style="text-align:center; color:var(--gray); padding:20px;">No users found.</div>`;
+        
+        if (users.length === 0) {
+            container.innerHTML = '<div style="text-align:center; color:var(--gray);">No users found.</div>';
             return;
         }
-        container.innerHTML = users.map(u => `
-            <div style="display:flex; align-items:center; gap:10px; padding:10px; border-bottom:1px solid #F3F4F6; cursor:pointer;" onclick="window.location.href='community-profile.html?uid=${u.uid}'">
-                <div style="width:40px; height:40px; border-radius:50%; background:#E5E7EB; display:flex; align-items:center; justify-content:center; overflow:hidden;">
-                    ${u.profile_pic ? `<img src="${u.profile_pic}" style="width:100%; height:100%; object-fit:cover;">` : '<i class="fas fa-user" style="color:#9CA3AF;"></i>'}
-                </div>
-                <div>
-                    <div style="font-weight:600; font-size:0.95rem; color:var(--dark);">${u.name}</div>
-                    <div style="font-size:0.75rem; color:var(--gray); text-transform:capitalize;">${u.role}</div>
-                </div>
-            </div>`).join('');
-    } catch (e) { container.innerHTML = 'Error loading list.'; }
+        
+        container.innerHTML = users.map(u => {
+            const imgHtml = u.profile_pic ? `<img src="${u.profile_pic}">` : `<div class="placeholder"><i class="fas fa-user"></i></div>`;
+            return `<a href="community-profile.html?uid=${u.uid}" class="follow-user-item">
+                ${imgHtml}<div><strong>${u.name}</strong><span>${u.role}</span></div>
+            </a>`;
+        }).join('');
+    } catch (e) { container.innerHTML = '<div style="color:red; text-align:center;">Error loading list.</div>'; }
 }
 
-function closeFollowModal(e) {
-    if (e && e.target !== document.getElementById('followListModal')) return;
-    document.getElementById('followListModal').classList.remove('active');
+// --- IMAGE UPLOAD LOGIC ---
+async function uploadProfilePicture(input) {
+    if (!input.files || !input.files[0]) return;
+    
+    const fd = new FormData();
+    fd.append('action', 'update_profile');
+    fd.append('uid', currentUser.uid);
+    fd.append('profile_pic', input.files[0]);
+
+    showToast("Uploading image...");
+    
+    try {
+        // Send to users.php to sync across the entire platform
+        const res = await fetch(`api/users.php`, { method: 'POST', body: fd });
+        const data = await res.json();
+        
+        if (data.status === 'success') {
+            showToast("Profile picture updated!");
+            // Read locally to display immediately without reloading
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                document.getElementById('profileImage').src = e.target.result;
+                document.getElementById('profileImage').style.display = 'block';
+                document.getElementById('profileIconPlaceholder').style.display = 'none';
+            }
+            reader.readAsDataURL(input.files[0]);
+        } else showToast("Error uploading image");
+    } catch (e) { showToast("Network error"); }
 }
 
 // --- EDIT PROFILE LOGIC ---
@@ -190,6 +193,7 @@ function populateEditForm(p, links, priv) {
     document.getElementById('editEducation').value = p.education || '';
     document.getElementById('editProfession').value = p.profession || '';
     document.getElementById('editLanguages').value = p.languages || '';
+    
     document.getElementById('editFb').value = links.fb || '';
     document.getElementById('editInsta').value = links.insta || '';
     document.getElementById('editX').value = links.x || '';
@@ -198,12 +202,24 @@ function populateEditForm(p, links, priv) {
     document.getElementById('privLocation').value = priv.location || 'public';
     document.getElementById('privEducation').value = priv.education || 'public';
     document.getElementById('privProfession').value = priv.profession || 'public';
+    document.getElementById('privLanguages').value = priv.languages || 'public';
     document.getElementById('privSocial').value = priv.social_links || 'public';
 }
 
 async function saveProfile() {
-    const links = { fb: document.getElementById('editFb').value.trim(), insta: document.getElementById('editInsta').value.trim(), x: document.getElementById('editX').value.trim(), yt: document.getElementById('editYt').value.trim() };
-    const priv = { location: document.getElementById('privLocation').value, education: document.getElementById('privEducation').value, profession: document.getElementById('privProfession').value, social_links: document.getElementById('privSocial').value };
+    const links = {
+        fb: document.getElementById('editFb').value.trim(),
+        insta: document.getElementById('editInsta').value.trim(),
+        x: document.getElementById('editX').value.trim(),
+        yt: document.getElementById('editYt').value.trim()
+    };
+    const priv = {
+        location: document.getElementById('privLocation').value,
+        education: document.getElementById('privEducation').value,
+        profession: document.getElementById('privProfession').value,
+        languages: document.getElementById('privLanguages').value,
+        social_links: document.getElementById('privSocial').value
+    };
 
     const fd = new FormData();
     fd.append('action', 'update_profile');
@@ -219,6 +235,10 @@ async function saveProfile() {
     try {
         const res = await fetch(API_URL, { method: 'POST', body: fd });
         const data = await res.json();
-        if(data.status === 'success') { closeEditModal(); showToast('Profile updated!'); loadProfileData(); }
+        if(data.status === 'success') {
+            closeEditModal();
+            showToast('Personal detail updated!');
+            loadProfileData(); 
+        } else showToast(data.message);
     } catch(e) { showToast('Network Error'); }
 }
