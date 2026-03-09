@@ -36,7 +36,8 @@ function switchReportTab(type) {
 
 // --- LOAD DOCUMENTS ---
 function loadAllDocuments() {
-    fetch(`${API_BASE}reports.php?patient_id=${email}`)
+    // We pass &viewer=patient so the API knows to enforce privacy rules
+    fetch(`${API_BASE}reports.php?patient_id=${email}&viewer=patient`)
     .then(res => res.json())
     .then(data => {
         const presList = document.getElementById('list-prescriptions');
