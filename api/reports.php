@@ -8,9 +8,9 @@ $action = $_REQUEST['action'] ?? '';
 // --- GET REQUESTS (Fetching Data) ---
 if ($method === 'GET') {
     $patient_id = $_GET['patient_id'] ?? '';
-    $type = $_GET['type'] ?? '';        // e.g., 'Prescription'
-    $uploader = $_GET['uploader'] ?? ''; // e.g., 'patient' or 'doctor'
-
+    $type = $_GET['type'] ?? '';        
+    $uploader = $_GET['uploader'] ?? ''; 
+    $viewer = $_GET['viewer'] ?? '';
     // Base SQL
     $sql = "SELECT * FROM reports WHERE patient_id = '$patient_id'";
 
@@ -20,6 +20,11 @@ if ($method === 'GET') {
     }
     if (!empty($uploader)) {
         $sql .= " AND uploaded_by = '$uploader'";
+    }
+
+    // NEW: If the patient is viewing, strictly block 'doctors_only' reports
+    if ($viewer === 'patient') {
+        $sql .= " AND (privacy_level = 'all' OR privacy_level IS NULL)";
     }
 
     $sql .= " ORDER BY timestamp DESC";
@@ -93,5 +98,26 @@ elseif ($method === 'POST') {
         if($stmt->execute()) echo json_encode(["status" => "success"]);
         else echo json_encode(["status" => "error", "message" => $stmt->error]);
     }
-}
+
+
+
+// 3. UPDATE REPORT PRIVACY
+    elseif ($action == 'update_privacy') {
+        $report_id = $_POST['report_id'];
+        $privacy_level = $_POST['privacy_level']; 
+
+        $stmt = $conn->prepare("UPDATE reports SET privacy_level = ? WHERE id = ?");
+        if ($stmt) {
+            $stmt->bind_param("si", $privacy_level, $report_id);
+            if($stmt->execute()) {
+                echo json_encode(["status" => "success"]);
+            } else {
+                echo json_encode(["status" => "error", "message" => $stmt->error]);
+            }
+            $stmt->close();
+        } else {
+            echo json_encode(["status" => "error", "message" => "Database prepare failed: " . $conn->error]);
+        }
+    }
+} 
 ?>
