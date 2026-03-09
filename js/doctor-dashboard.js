@@ -13,7 +13,7 @@ if (!storedEmail) {
     window.location.href = 'index.html';
 }
 
-const currentUserData = { name: name, role: 'doctor', uid: storedEmail, email: storedEmail };
+const currentUserData = { name: name, role: 'doctor', uid: storedUid, email: storedEmail };
 
 document.getElementById('sideName').innerText = name;
 document.getElementById('welcomeTitle').innerText = "Hello, " + name;
@@ -120,6 +120,10 @@ function openAppointmentList(filterType) {
                     <div style="text-align:right; display:flex; gap:5px; flex-wrap:wrap; justify-content:flex-end;">${btns}</div>
                 </div>`;
         });
+    })
+    .catch(error => {
+        document.getElementById('aptList').innerHTML = `<p style="color:var(--primary); text-align:center; animation: fadeIn 0.4s ease;">Failed to load data. Please check your connection or backend.</p>`;
+        console.error("API Error:", error);
     });
 }
 
