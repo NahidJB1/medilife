@@ -118,3 +118,27 @@
     min-width: 150px;
     transition: background 0.3s ease;
 }
+
+/* Feature D: Clickable Answer Cards */
+.clickable-answer-card {
+    cursor: pointer;
+    transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.2s;
+}
+.clickable-answer-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 6px 15px rgba(0,0,0,0.08);
+}
+.clickable-answer-card:active {
+    transform: scale(0.98);
+}
+
+
+/* Feature B: Clickable Shared Post Hover Animation */
+.clickable-shared-post:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 6px 15px rgba(0,0,0,0.08);
+    border-color: var(--primary) !important;
+}
+.clickable-shared-post:active {
+    transform: scale(0.98);
+}
