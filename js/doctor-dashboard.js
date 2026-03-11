@@ -39,19 +39,22 @@ fetch(`${API_BASE}users.php`, { method: 'POST', body: formData });
 // --- TAB SWITCHING ---
 // --- TAB SWITCHING ---
 function switchMainTab(el, tabName) {
-    document.querySelectorAll('.tab-item, .nav-item').forEach(t => t.classList.remove('active'));
-    if(el) el.classList.add('active');
+    // 1. Manage Main Tabs (Top Nav) active states
+    document.querySelectorAll('.tab-item').forEach(t => t.classList.remove('active'));
+    if (el && el.classList.contains('tab-item')) {
+        el.classList.add('active');
+    }
+
+    // 2. Manage Sidebar active states independently
+    const sideNavs = document.querySelectorAll('.nav-item');
+    sideNavs.forEach(t => t.classList.remove('active'));
     
-    const allNavs = document.querySelectorAll('.nav-item');
-    if(tabName === 'home') allNavs[0].classList.add('active');
-    if(tabName === 'notifications') allNavs[1].classList.add('active');
-
-    const contentArea = document.getElementById('tabContentArea');
-
     if (tabName === 'home') {
-        // Just reload the page to cleanly reset the Home state
+        sideNavs[0].classList.add('active'); // Highlight Home on sidebar
         location.reload(); 
     } else if (tabName === 'notifications') {
+        // Leave sidebar items un-highlighted since we are in Notifications
+        const contentArea = document.getElementById('tabContentArea');
         loadNotifications(contentArea, role);
     }
 }
