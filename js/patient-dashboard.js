@@ -35,24 +35,15 @@ function switchMainTab(el, tabName) {
     
     const allNavs = document.querySelectorAll('.nav-item');
     if(tabName === 'home') allNavs[0].classList.add('active');
-    if(tabName === 'community') allNavs[1].classList.add('active');
+    if(tabName === 'notifications') allNavs[1].classList.add('active');
 
     const contentArea = document.getElementById('tabContentArea');
 
     if (tabName === 'home') {
-        if(window.feedInterval) clearInterval(window.feedInterval);
-        contentArea.innerHTML = `
-        <div class="action-section">
-            <div class="section-title">Quick Actions</div>
-            <div class="quick-actions">
-                <div class="action-card" onclick="openUploadModal()"><i class="fas fa-file-upload"></i><h4>Upload Report</h4><p>X-Ray, ECG, etc.</p></div>
-                <div class="action-card" onclick="openFindDoctorModal()"><i class="fas fa-user-md"></i><h4>Find Doctors</h4><p>Book Appointment</p></div>
-                <div class="action-card" onclick="openPatientSchedule()"><i class="fas fa-calendar-alt"></i><h4>View Schedule</h4><p>Check Appointments</p></div>
-                <div class="action-card" onclick="window.location.href='patient-reports.html'"><i class="fas fa-file-medical-alt"></i><h4>My Reports</h4><p>View History</p></div>
-            </div>
-        </div>`;
-    } else if (tabName === 'community') {
-        loadCommunityFeed(contentArea);
+        // Just reload the page to cleanly reset the Home state
+        location.reload(); 
+    } else if (tabName === 'notifications') {
+        loadNotifications(contentArea, role);
     }
 }
 
@@ -371,61 +362,7 @@ function respondToAccess(aptId, allow) {
 }
 
 // --- COMMUNITY FEED (Auto-Refresh) ---
-function loadCommunityFeed(container) {
-    container.innerHTML = `
-        <div class="create-post-card">
-            <textarea id="newPostText" class="cp-input-area" style="width:100%; border:none; outline:none;" placeholder="Share a health journey..."></textarea>
-            <div style="text-align:right; margin-top:10px;">
-                <button class="list-btn btn-book" onclick="publishPost()">Post</button>
-            </div>
-        </div>
-        <div id="postsFeed">Loading posts...</div>
-    `;
-    fetchPosts();
-    window.feedInterval = setInterval(fetchPosts, 5000);
-}
 
-function fetchPosts() {
-    const feed = document.getElementById('postsFeed');
-    if(!feed) return; 
-    
-    fetch(`${API_BASE}community.php?action=get`).then(r=>r.json()).then(data => {
-        feed.innerHTML = '';
-        data.forEach(p => {
-            const isLiked = p.likes && p.likes.includes(currentUserData.uid);
-            let commentsHtml = '';
-            if(p.comments) p.comments.forEach(c => {
-                commentsHtml += `<div style="margin-bottom:8px; font-size:0.9rem; border-bottom:1px solid #eee;"><strong>${c.author}</strong>: ${c.text}</div>`;
-            });
-
-            feed.innerHTML += `
-                <div class="post-card">
-                    <div class="post-header"><strong>${p.authorName}</strong> <span class="role-badge role-${p.authorRole}">${p.authorRole}</span></div>
-                    <p>${p.content}</p>
-                    <div class="interaction-bar">
-                        <button class="action-btn ${isLiked?'liked':''}" onclick="toggleLike('${p.id}', ${isLiked})"> <i class="${isLiked ? 'fas' : 'far'} fa-heart"></i> ${p.likes ? p.likes.length : 0}</button>
-                        <button class="action-btn" onclick="document.getElementById('c-sec-${p.id}').classList.toggle('open')"> <i class="far fa-comment"></i> ${p.comments ? p.comments.length : 0}</button>
-                    </div>
-                    <div class="comments-section" id="c-sec-${p.id}">
-                        <div class="comment-input-box">
-                            <input type="text" id="i-${p.id}" placeholder="Write a comment...">
-                            <button class="list-btn btn-view" onclick="sendComment('${p.id}')">Send</button>
-                        </div>
-                        <div style="max-height:200px; overflow-y:auto;">${commentsHtml}</div>
-                    </div>
-                </div>`;
-        });
-    });
-}
-
-function publishPost() {
-    const txt = document.getElementById('newPostText').value;
-    if(!txt) return;
-    const fd = new FormData();
-    fd.append('action', 'post'); fd.append('content', txt);
-    fd.append('authorName', currentUserData.name); fd.append('authorRole', 'patient'); fd.append('authorId', currentUserData.uid);
-    fetch(`${API_BASE}community.php`, { method: 'POST', body: fd }).then(() => { document.getElementById('newPostText').value = ''; fetchPosts(); });
-}
 
 function toggleLike(pid) {
     const fd = new FormData(); fd.append('action', 'like'); fd.append('id', pid); fd.append('uid', currentUserData.uid);
@@ -480,4 +417,106 @@ function parseDoctorSchedule(timeString) {
         }
     });
     return Object.keys(schedule).length > 0 ? schedule : null;
+}
+
+
+// --- MOBILE SIDEBAR TOGGLE ---
+function toggleSidebar() {
+    const sidebar = document.getElementById('sidebar');
+    let overlay = document.getElementById('sidebarOverlay');
+    
+    if (!overlay) {
+        overlay = document.createElement('div');
+        overlay.id = 'sidebarOverlay';
+        overlay.className = 'sidebar-overlay';
+        overlay.onclick = toggleSidebar;
+        document.body.appendChild(overlay);
+    }
+    
+    sidebar.classList.toggle('active');
+    if (sidebar.classList.contains('active')) {
+        overlay.classList.add('active');
+    } else {
+        overlay.classList.remove('active');
+    }
+}
+
+// --- NOTIFICATIONS SYSTEM ---
+function loadNotifications(container, userType) {
+    container.innerHTML = `
+        <div class="action-section">
+            <div class="section-title">Recent Notifications</div>
+            <div id="notificationsStream">
+                <div style="text-align:center; padding: 20px; color: var(--gray);">Loading notifications... <i class="fas fa-spinner fa-spin"></i></div>
+            </div>
+        </div>`;
+        
+    const queryParam = userType === 'doctor' ? `doctor_id=${currentUserData.uid}` : `patient_id=${currentUserData.uid}`;
+    
+    fetch(`${API_BASE}appointments.php?${queryParam}`)
+    .then(res => res.json())
+    .then(data => {
+        const feed = document.getElementById('notificationsStream');
+        feed.innerHTML = '';
+        
+        if(data.length === 0) {
+            feed.innerHTML = `<div style="text-align:center; padding: 30px; background: white; border-radius: 12px; border: 1px dashed #ccc; color: var(--gray);">No recent notifications found.</div>`;
+            return;
+        }
+
+        data.forEach((apt, index) => {
+            let icon = 'fa-bell';
+            let iconBg = '#F3F4F6';
+            let iconColor = 'var(--gray)';
+            let title = '';
+            let msg = '';
+            
+            // Animation delay for smooth cascading effect
+            const animDelay = `${index * 0.1}s`;
+
+            if (userType === 'doctor') {
+                if (apt.status === 'pending') {
+                    icon = 'fa-calendar-plus'; iconColor = '#F59E0B'; iconBg = '#FEF3C7';
+                    title = 'New Appointment Request';
+                    msg = `Patient <strong>${apt.patient_name}</strong> requested an appointment on ${apt.preferred_time || 'a preferred time'}.`;
+                } else if (apt.status === 'accepted') {
+                    icon = 'fa-calendar-check'; iconColor = 'var(--secondary)'; iconBg = '#DCFCE7';
+                    title = 'Appointment Booked';
+                    msg = `You accepted an appointment with <strong>${apt.patient_name}</strong>.`;
+                } else {
+                    icon = 'fa-calendar-times'; iconColor = '#EF4444'; iconBg = '#FEE2E2';
+                    title = 'Appointment Cancelled';
+                    msg = `Appointment with <strong>${apt.patient_name}</strong> was declined or cancelled.`;
+                }
+            } else {
+                if (apt.status === 'accepted') {
+                    icon = 'fa-check-circle'; iconColor = 'var(--secondary)'; iconBg = '#DCFCE7';
+                    title = 'Request Approved';
+                    msg = `Dr. <strong>${apt.doctor_name}</strong> approved your request. ${apt.scheduled_time ? `<br><span style="color:var(--primary); font-weight:600;">Time set to: ${apt.scheduled_time}</span>` : ''}`;
+                } else if (apt.status === 'pending') {
+                    icon = 'fa-clock'; iconColor = '#F59E0B'; iconBg = '#FEF3C7';
+                    title = 'Request Pending';
+                    msg = `Your request to Dr. <strong>${apt.doctor_name}</strong> is awaiting approval.`;
+                } else {
+                    icon = 'fa-times-circle'; iconColor = '#EF4444'; iconBg = '#FEE2E2';
+                    title = 'Request Declined';
+                    msg = `Your request to Dr. <strong>${apt.doctor_name}</strong> was cancelled or declined.`;
+                }
+            }
+
+            feed.innerHTML += `
+                <div class="notification-card" style="animation-delay: ${animDelay}; border-left-color: ${iconColor};">
+                    <div class="notif-icon" style="color: ${iconColor}; background: ${iconBg};">
+                        <i class="fas ${icon}"></i>
+                    </div>
+                    <div class="notif-content" style="flex: 1;">
+                        <h4>${title}</h4>
+                        <p>${msg}</p>
+                        <div class="notif-time"><i class="far fa-clock"></i> ${new Date(apt.request_date).toLocaleDateString()}</div>
+                    </div>
+                </div>`;
+        });
+    }).catch(err => {
+        document.getElementById('notificationsStream').innerHTML = `<p style="color: red; text-align: center;">Failed to load notifications.</p>`;
+    });
 }
