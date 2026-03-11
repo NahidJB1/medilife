@@ -57,7 +57,10 @@ if ($action == 'get_feed') {
     }
     
     // Apply the correct Sorting
-    if ($sort === 'trending') {
+    if ($profileUid !== '' && $filter === 'wall') {
+        // F. Pin feature: Order by pinned posts first on profile wall
+        $sql .= " ORDER BY p.is_pinned DESC, p.created_at DESC LIMIT ? OFFSET ?";
+    } elseif ($sort === 'trending') {
         $sql .= " ORDER BY trending_score DESC, p.created_at DESC LIMIT ? OFFSET ?";
     } else {
         $sql .= " ORDER BY p.created_at DESC LIMIT ? OFFSET ?";
@@ -190,13 +193,18 @@ elseif ($action == 'follow') {
 // ----------------------------- SHARE POST -----------------------------
 elseif ($action == 'share') {
     $userId = $_POST['userId'];
-    $originalPostId = $_POST['originalPostId'];
+    $originalPostId = intval($_POST['originalPostId']);
 
-    // Get original post details
-    $orig = $conn->query("SELECT author_id, author_name, author_role, content, images FROM posts WHERE id = $originalPostId")->fetch_assoc();
-    if (!$orig) {
+    // Get original post details to check if it's already a share (Feature C)
+    $orig_check = $conn->query("SELECT type, original_post_id FROM posts WHERE id = $originalPostId")->fetch_assoc();
+    if (!$orig_check) {
         echo json_encode(["status" => "error", "message" => "Original post not found"]);
         exit;
+    }
+
+    // C. If User C shares User B's share of User A, resolve to User A's original post
+    if ($orig_check['type'] === 'share' && !empty($orig_check['original_post_id'])) {
+        $originalPostId = intval($orig_check['original_post_id']);
     }
 
     // Get current user details
@@ -206,8 +214,8 @@ elseif ($action == 'share') {
         exit;
     }
 
-    // Create share post (A. Accept custom caption)
-    $shareContent = !empty($_POST['content']) ? $_POST['content'] : "shared a post";
+    // E. Allow empty captions when sharing
+    $shareContent = !empty($_POST['content']) ? $_POST['content'] : "";
     $stmt = $conn->prepare("INSERT INTO posts (author_id, author_name, author_role, type, content, original_post_id) VALUES (?, ?, ?, 'share', ?, ?)");
     $stmt->bind_param("ssssi", $userId, $user['name'], $user['role'], $shareContent, $originalPostId);
     if ($stmt->execute()) {
@@ -220,6 +228,35 @@ elseif ($action == 'share') {
         echo json_encode(["status" => "success"]);
     } else {
         echo json_encode(["status" => "error", "message" => $stmt->error]);
+    }
+    exit;
+}
+
+// ----------------------------- PIN / UNPIN POST -----------------------------
+elseif ($action == 'toggle_pin') {
+    $postId = intval($_POST['postId']);
+    $userId = $_POST['userId'];
+
+    // Verify ownership
+    $check = $conn->query("SELECT id, is_pinned FROM posts WHERE id = $postId AND author_id = '$userId'");
+    if ($check->num_rows > 0) {
+        $post = $check->fetch_assoc();
+        
+        if (!$post['is_pinned']) {
+            // Enforce max 3 pins
+            $pinCount = $conn->query("SELECT COUNT(*) as count FROM posts WHERE author_id = '$userId' AND is_pinned = 1")->fetch_assoc()['count'];
+            if ($pinCount >= 3) {
+                echo json_encode(["status" => "error", "message" => "You can only pin up to 3 posts."]);
+                exit;
+            }
+            $conn->query("UPDATE posts SET is_pinned = 1 WHERE id = $postId");
+            echo json_encode(["status" => "pinned"]);
+        } else {
+            $conn->query("UPDATE posts SET is_pinned = 0 WHERE id = $postId");
+            echo json_encode(["status" => "unpinned"]);
+        }
+    } else {
+        echo json_encode(["status" => "error", "message" => "Unauthorized to pin this post"]);
     }
     exit;
 }
