@@ -73,11 +73,60 @@
 
 /* Mobile Optimization */
 @media (max-width: 800px) {
-    .profile-layout { grid-template-columns: 1fr; gap: 1rem; }
-    .profile-sidebar { margin-top: 10px; padding: 1.5rem; background: white; border-radius: 12px; border: 1px solid #E5E7EB;}
-    .profile-bio { max-width: 100%; }
+    .profile-layout { 
+        display: flex; 
+        flex-direction: column; 
+        gap: 1.2rem; 
+    }
+    
+    /* Unbox the main container so we can weave the sidebar between its children */
+    .profile-main { 
+        display: contents; 
+    }
+    
+    .profile-intro { 
+        order: 1; 
+        margin-bottom: 0; /* Let the layout gap handle spacing */
+    }
+    
+    /* Position Personal Details between Intro and Tabs */
+    .profile-sidebar { 
+        order: 2; 
+        margin-top: 0; 
+        padding: 1.2rem; 
+        background: #F9FAFB; 
+        border-radius: 16px; 
+        border: 1px solid #E5E7EB;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03); /* Trendy subtle depth */
+        animation: slideUpFade 0.5s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+    }
+    
+    .profile-tabs { 
+        order: 3; 
+        margin-bottom: 5px;
+    }
+    
+    /* The feed container will automatically become order 4 */
+    #feedContainer { 
+        order: 4; 
+    }
+    
+    .profile-bio { 
+        max-width: 100%; 
+    }
 }
 
+/* Smooth entry animation for the mobile elements */
+@keyframes slideUpFade {
+    from { 
+        opacity: 0; 
+        transform: translateY(15px); 
+    }
+    to { 
+        opacity: 1; 
+        transform: translateY(0); 
+    }
+}
 /* Avatar Upload Overlay */
 .avatar-upload-overlay {
     position: absolute; bottom: 0; left: 0; width: 100%; height: 35%;
