@@ -11,7 +11,7 @@
 <body>
 
     <aside class="sidebar" id="sidebar">
-        <div class="brand" onclick="window.location.href='index.html'">
+        <div class="brand" onclick="location.reload()">
     <svg width="30" height="30" viewBox="0 0 100 100" style="margin-right: 10px;">
         <rect x="35" y="10" width="30" height="80" rx="5" fill="#EF4444" />
         <rect x="10" y="35" width="80" height="30" rx="5" fill="#EF4444" />
@@ -23,7 +23,7 @@
 
         <div class="nav-items">
             <div class="nav-item active" onclick="switchMainTab(this, 'home')"><i class="fas fa-home"></i> Home</div>
-            <div class="nav-item" onclick="window.location.href='community.html'"><i class="fas fa-users"></i> Community</div>
+            <div class="nav-item" onclick="switchMainTab(this, 'notifications')"><i class="fas fa-bell"></i> Notifications</div>
         </div>
 
 <div class="user-mini-profile" onclick="window.location.href='profile.html'" style="cursor: pointer;">
@@ -38,8 +38,10 @@
 
     <main class="main-content">
         <header>
-            <div class="welcome-text">
-                <h1 id="welcomeTitle">Welcome Back!</h1>
+            <div style="display: flex; align-items: center; gap: 15px;">
+                <button class="mobile-menu-btn" onclick="toggleSidebar()"><i class="fas fa-bars"></i></button>
+                <div class="welcome-text">
+                    <h1 id="welcomeTitle">Welcome Back!</h1>
                 <p id="currentDate">Loading date...</p>
             </div>
             <div class="header-actions">
@@ -49,7 +51,7 @@
 
         <div class="dashboard-tabs" id="mainTabs">
             <div class="tab-item active" onclick="switchMainTab(this, 'home')"><i class="fas fa-home"></i> Home</div>
-            <div class="tab-item" onclick="switchMainTab(this, 'community')"><i class="fas fa-users"></i> Community</div>
+            <div class="tab-item" onclick="switchMainTab(this, 'notifications')"><i class="fas fa-bell"></i> Notifications</div>
         </div>
 
         <div id="tabContentArea">
