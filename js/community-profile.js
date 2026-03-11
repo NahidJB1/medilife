@@ -121,7 +121,13 @@ async function loadProfileAnswers() {
         
         answers.forEach(ans => {
             const div = document.createElement('div');
-            div.className = 'post-card';
+            // Added the new CSS class for smooth animations
+            div.className = 'post-card clickable-answer-card'; 
+            
+            // Added the onclick event to route to the main post
+            // NOTE: Replace 'single-post.html' with the actual name of your post view page if it is different!
+            div.onclick = () => window.location.href = `single-post.html?id=${ans.post_id}`;
+            
             div.innerHTML = `
                 <div style="font-size: 0.85rem; color: var(--gray); margin-bottom: 8px;">Answered on a post: <strong>${ans.post_title || 'Question'}</strong></div>
                 <div style="padding: 10px; background: #F9FAFB; border-left: 3px solid #E5E7EB; margin-bottom: 10px; font-style: italic; color: #6B7280;">"${ans.post_content}"</div>
