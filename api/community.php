@@ -261,6 +261,35 @@ elseif ($action == 'toggle_pin') {
     exit;
 }
 
+// ----------------------------- GET SINGLE POST -----------------------------
+elseif ($action == 'get_single_post') {
+    $postId = intval($_GET['postId']);
+    $uid = $_GET['uid'] ?? '';
+    
+    $sql = "SELECT p.*, 
+            (SELECT COUNT(*) FROM likes WHERE post_id = p.id) AS likes_count,
+            (SELECT COUNT(*) FROM comments WHERE post_id = p.id) AS comments_count,
+            (SELECT profile_pic FROM users WHERE uid = p.author_id) AS author_pic 
+            FROM posts p WHERE p.id = $postId";
+            
+    $result = $conn->query($sql);
+    if ($result->num_rows > 0) {
+        $row = $result->fetch_assoc();
+        $row['images'] = json_decode($row['images'], true) ?? [];
+        if ($row['type'] == 'share' && $row['original_post_id']) {
+            $orig = $conn->query("SELECT p.author_name, p.author_role, p.content, p.images, (SELECT profile_pic FROM users WHERE uid = p.author_id) AS author_pic FROM posts p WHERE p.id = " . $row['original_post_id'])->fetch_assoc();
+            $row['original'] = $orig;
+        }
+        $row['liked_by_user'] = $uid ? ($conn->query("SELECT id FROM likes WHERE post_id = {$row['id']} AND user_id = '$uid'")->num_rows > 0) : false;
+        $row['followed_by_user'] = $uid ? ($conn->query("SELECT id FROM follows WHERE follower_uid = '$uid' AND followed_uid = '{$row['author_id']}'")->num_rows > 0) : false;
+        $row['created_at'] = date('c', strtotime($row['created_at']));
+        echo json_encode(["status" => "success", "post" => $row]);
+    } else {
+        echo json_encode(["status" => "error", "message" => "Post not found"]);
+    }
+    exit;
+}
+
 // ----------------------------- GET COMMENTS FOR A POST -----------------------------
 elseif ($action == 'get_comments') {
     $postId = $_GET['postId'];
