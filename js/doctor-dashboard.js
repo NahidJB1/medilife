@@ -420,4 +420,4 @@ function loadNotifications(container, userType) {
 function closeDocViewer() { document.getElementById('documentViewerModal').classList.remove('active'); }
 function closeModal() { document.getElementById('dashboardModal').classList.remove('active'); }
 function showToast(msg) { const b = document.getElementById('toast-box'); if(b){ document.getElementById('toast-msg').innerText = msg; b.classList.add('show'); setTimeout(()=>b.classList.remove('show'),3000); }}
-function logout() { localStorage.clear(); window.location.href = 'index.html'; }
+
