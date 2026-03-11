@@ -206,8 +206,8 @@ elseif ($action == 'share') {
         exit;
     }
 
-    // Create share post
-    $shareContent = "shared a post"; // You can customize
+    // Create share post (A. Accept custom caption)
+    $shareContent = !empty($_POST['content']) ? $_POST['content'] : "shared a post";
     $stmt = $conn->prepare("INSERT INTO posts (author_id, author_name, author_role, type, content, original_post_id) VALUES (?, ?, ?, 'share', ?, ?)");
     $stmt->bind_param("ssssi", $userId, $user['name'], $user['role'], $shareContent, $originalPostId);
     if ($stmt->execute()) {
