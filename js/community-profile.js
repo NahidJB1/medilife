@@ -1,7 +1,8 @@
 let targetProfileUid = new URLSearchParams(window.location.search).get('uid');
 let currentTab = 'wall';
 
-window.onload = () => {
+// C. Use DOMContentLoaded instead of window.onload for instant loading
+document.addEventListener('DOMContentLoaded', () => {
     if (!localStorage.getItem('isLoggedIn')) { window.location.href = 'login.html'; return; }
     currentUser = { 
         name: localStorage.getItem('userName'), 
@@ -13,7 +14,7 @@ window.onload = () => {
 
     loadProfileData();
     loadProfileFeed('wall');
-};
+});
 
 async function loadProfileData() {
     try {
@@ -22,11 +23,15 @@ async function loadProfileData() {
         
         if (data.status === 'success') {
             const p = data.profile;
-            document.getElementById('profileName').innerText = p.name;
+            // D. Remove Skeleton loaders to stop layout shifting
+            const nameEl = document.getElementById('profileName');
+            nameEl.innerText = p.name;
+            nameEl.classList.remove('skeleton-text');
             
             const roleBadge = document.getElementById('profileRole');
             roleBadge.innerText = p.role.charAt(0).toUpperCase() + p.role.slice(1);
             roleBadge.className = `role-badge role-${p.role}`;
+            roleBadge.style.opacity = '1'; // D. Fade in badge
             
             // Show Answers tab only if doctor
             if (p.role === 'doctor') document.getElementById('tabAnswers').style.display = 'block';
@@ -40,8 +45,9 @@ async function loadProfileData() {
                 iconEl.style.display = 'none';
             }
             
-            document.getElementById('followerCount').innerHTML = `<span>${p.followers_count || 0}</span>`;
-            document.getElementById('followingCount').innerHTML = `<span>${p.following_count || 0}</span>`;
+            // B. Fix missing Follow/Following text
+            document.getElementById('followerCount').innerHTML = `<span>${p.followers_count || 0}</span> Followers`;
+            document.getElementById('followingCount').innerHTML = `<span>${p.following_count || 0}</span> Following`;
             document.getElementById('profileBio').innerText = p.bio || 'This user has not written a bio yet.';
             
             // Build Personal Details Grid
@@ -184,7 +190,33 @@ async function uploadProfilePicture(input) {
 }
 
 // --- EDIT PROFILE LOGIC ---
-function openEditModal() { document.getElementById('editProfileModal').classList.add('active'); }
+function openEditModal() { 
+    // A. Role-Based Fields Visibility
+    const role = currentUser.role;
+    const groupEdu = document.getElementById('groupEducation');
+    const groupProf = document.getElementById('groupProfession');
+    const labelProf = document.getElementById('labelProfession');
+
+    if (role === 'patient') {
+        // Patients don't need Medical Education or Work Experience
+        groupEdu.style.display = 'none';
+        groupProf.style.display = 'none';
+    } else if (role === 'pharmacy') {
+        // Pharmacy doesn't need Medical Education, but needs Business Info
+        groupEdu.style.display = 'none';
+        groupProf.style.display = 'flex';
+        labelProf.innerHTML = '<i class="fas fa-store"></i> Business Info';
+        document.getElementById('editProfession').placeholder = 'e.g. Retail Pharmacy';
+    } else {
+        // Doctors get everything
+        groupEdu.style.display = 'flex';
+        groupProf.style.display = 'flex';
+        labelProf.innerHTML = '<i class="fas fa-briefcase"></i> Work Experience';
+        document.getElementById('editProfession').placeholder = 'e.g. Cardiologist';
+    }
+
+    document.getElementById('editProfileModal').classList.add('active'); 
+}
 function closeEditModal() { document.getElementById('editProfileModal').classList.remove('active'); }
 
 function populateEditForm(p, links, priv) {
