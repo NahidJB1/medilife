@@ -156,10 +156,21 @@ textarea {
 .post-images.expanded img { width: 100%; max-height: 400px; object-fit: contain; }
 
 /* Interaction Bar */
+/* Interaction Bar */
 .interaction-bar {
-    display: flex; gap: 1.5rem; margin-top: 1rem; padding-top: 1rem;
-    border-top: 1px solid #eee; flex-wrap: wrap;
+    display: flex; 
+    justify-content: space-between; /* Spreads buttons evenly */
+    align-items: center;
+    margin-top: 1rem; 
+    padding-top: 1rem;
+    border-top: 1px solid #eee; 
+    flex-wrap: wrap;
 }
+.interaction-bar .action-btn {
+    flex: 1; /* Allows buttons to take up equal space */
+    justify-content: center; /* Centers icon and text */
+}
+
 .action-btn {
     background: none; border: none; color: var(--gray);
     cursor: pointer; display: flex; align-items: center; gap: 6px;
@@ -493,4 +504,16 @@ textarea {
 .rich-editor:empty:before {
     content: attr(data-placeholder);
     color: #9CA3AF; pointer-events: none; display: block;
+}
+
+/* --- B. TEXT ALIGNMENT & LIST FIXES --- */
+.rich-editor ul, .rich-editor ol,
+.post-text ul, .post-text ol {
+    padding-left: 24px;
+    margin-top: 8px;
+    margin-bottom: 8px;
+}
+.rich-editor li, .post-text li {
+    margin-bottom: 4px;
+    list-style-position: outside;
 }
