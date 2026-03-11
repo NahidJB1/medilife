@@ -481,6 +481,11 @@ textarea {
         position: fixed; bottom: 70px; top: auto; right: 10px; left: 10px; width: auto; 
         max-height: 60vh; transform: translateY(20px);
     }
+
+    /* Constrain editor height on mobile to leave room for the keyboard */
+    .rich-editor {
+        max-height: 35vh;
+    }
 }
 
 
@@ -496,11 +501,19 @@ textarea {
 .editor-toolbar button:hover { background: #E5E7EB; color: var(--dark); }
 
 .rich-editor {
-    width: 100%; min-height: 100px; border: 1px solid #E5E7EB;
+    width: 100%; min-height: 100px; max-height: 350px; border: 1px solid #E5E7EB;
     border-radius: 8px; padding: 12px; font-size: 1rem;
     outline: none; overflow-y: auto; background: white;
     white-space: pre-wrap; word-wrap: break-word; line-height: 1.6;
+    scroll-behavior: smooth;
 }
+
+/* Modern Scrollbar for the Editor */
+.rich-editor::-webkit-scrollbar { width: 6px; }
+.rich-editor::-webkit-scrollbar-track { background: transparent; }
+.rich-editor::-webkit-scrollbar-thumb { background: #D1D5DB; border-radius: 10px; }
+.rich-editor::-webkit-scrollbar-thumb:hover { background: #9CA3AF; }
+
 .rich-editor:empty:before {
     content: attr(data-placeholder);
     color: #9CA3AF; pointer-events: none; display: block;
