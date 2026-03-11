@@ -57,8 +57,10 @@ function initCommunity() {
         postImages.addEventListener('change', handleImagePreview);
     }
 
-    // Load initial feed
-    loadFeed(true);
+    // Load initial feed ONLY if we are on the main community page
+    if (!window.location.href.includes('community-profile.html')) {
+        loadFeed(true);
+    }
     
     // Fetch user avatar for Create Post trigger
     fetchCurrentUserAvatar();
@@ -71,7 +73,7 @@ async function fetchCurrentUserAvatar() {
         const res = await fetch(`${API_URL}?action=get_profile&targetUid=${currentUser.uid}&reqUid=${currentUser.uid}`);
         const data = await res.json();
         if (data.status === 'success' && data.profile.profile_pic) {
-            const avatarHtml = `<img src="${data.profile.profile_pic}" style="width:100%; height:100%; object-fit:cover;">`;
+            const avatarHtml = `<img src="${data.profile.profile_pic}" style="width:100%; height:100%; border-radius:50%; object-fit:cover;">`;
             
             // Apply to Create Post Trigger
             const triggerAvatar = document.getElementById('triggerAvatar');
@@ -194,10 +196,12 @@ async function loadFeed(reset = false) {
     }
 }
 
-// Infinite scroll
+// Infinite scroll (Only trigger on main community page to prevent profile feed overwriting)
 window.addEventListener('scroll', () => {
-    if (window.innerHeight + window.scrollY >= document.body.offsetHeight - 500) {
-        loadFeed();
+    if (!window.location.href.includes('community-profile.html')) {
+        if (window.innerHeight + window.scrollY >= document.body.offsetHeight - 500) {
+            loadFeed();
+        }
     }
 });
 
@@ -260,7 +264,7 @@ function createPostElement(post) {
 
         contentHtml = `
             ${captionHtml}
-            <div class="shared-post-box" style="border: 1px solid #E5E7EB; border-radius: 12px; padding: 15px; background: #F9FAFB;">
+            <div class="shared-post-box clickable-shared-post" onclick="window.location.href='single-post.html?id=${post.original_post_id}'" style="border: 1px solid #E5E7EB; border-radius: 12px; padding: 15px; background: #F9FAFB; cursor: pointer; transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.2s, border-color 0.2s;">
                 <div style="display:flex; align-items:center; gap:10px; margin-bottom:10px;">
                     ${origAvatar}
                     <div>
