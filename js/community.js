@@ -65,9 +65,9 @@ function initCommunity() {
 function setPostType(type) {
     currentPostType = type;
     document.getElementById('postTitle').classList.toggle('active', type === 'article');
-    document.getElementById('postContent').placeholder = type === 'article' 
-        ? 'Write your medical article content here...' 
-        : 'What health question is on your mind?';
+    document.getElementById('postContent').setAttribute('data-placeholder', type === 'article' 
+    ? 'Write your medical article content here...' 
+    : 'What health question is on your mind?');
     document.querySelectorAll('.cp-tab').forEach(t => t.classList.remove('active'));
     if (type === 'article') {
         document.getElementById('tabArticle').classList.add('active');
@@ -92,7 +92,7 @@ function handleImagePreview(e) {
 }
 
 async function submitPost() {
-    const content = document.getElementById('postContent').value.trim();
+    const content = document.getElementById('postContent').innerHTML.trim();
     const title = document.getElementById('postTitle').value.trim();
     const images = document.getElementById('postImages').files;
 
@@ -115,7 +115,7 @@ async function submitPost() {
         const res = await fetch(API_URL, { method: 'POST', body: formData });
         const data = await res.json();
         if (data.status === 'success') {
-            document.getElementById('postContent').value = '';
+            document.getElementById('postContent').innerHTML = '';
             document.getElementById('postTitle').value = '';
             document.getElementById('postImages').value = '';
             document.getElementById('imagePreview').innerHTML = '';
@@ -206,8 +206,30 @@ function createPostElement(post) {
              origImages = `<img src="${parsedImages[0]}" style="width:100%; max-height:250px; object-fit:cover; border-radius:8px; margin-top:10px;">`;
         }
 
+        // B. Truncation for custom share caption
+        let captionHtml = '';
+        if (post.content && post.content.length > 150) {
+            captionHtml = `
+                <div class="post-text truncated" id="text-${post.id}" style="margin-bottom: 12px; white-space: pre-wrap;">${post.content}</div>
+                <button class="see-more-btn" onclick="toggleText('${post.id}')" style="margin-bottom: 12px;">See more</button>
+            `;
+        } else {
+            captionHtml = `<div class="post-text" id="text-${post.id}" style="margin-bottom: 12px; white-space: pre-wrap;">${post.content}</div>`;
+        }
+
+        // B. Truncation for Original Shared Content
+        let origContentHtml = '';
+        if (post.original.content && post.original.content.length > 150) {
+            origContentHtml = `
+                <div class="post-text truncated" id="text-orig-${post.id}" style="font-size:0.9rem; color:#374151; white-space: pre-wrap;">${post.original.content}</div>
+                <button class="see-more-btn" onclick="toggleText('orig-${post.id}')">See more</button>
+            `;
+        } else {
+            origContentHtml = `<div class="post-text" id="text-orig-${post.id}" style="font-size:0.9rem; color:#374151; white-space: pre-wrap;">${post.original.content}</div>`;
+        }
+
         contentHtml = `
-            <div class="post-text" style="margin-bottom: 12px;">${post.content}</div>
+            ${captionHtml}
             <div class="shared-post-box" style="border: 1px solid #E5E7EB; border-radius: 12px; padding: 15px; background: #F9FAFB;">
                 <div style="display:flex; align-items:center; gap:10px; margin-bottom:10px;">
                     ${origAvatar}
@@ -216,22 +238,21 @@ function createPostElement(post) {
                         <div style="font-size:0.75rem; color:var(--gray); text-transform:capitalize;">${post.original.author_role}</div>
                     </div>
                 </div>
-                <div style="font-size:0.9rem; color:#374151; white-space: pre-line;">${post.original.content}</div>
+                ${origContentHtml}
                 ${origImages}
             </div>
         `;
     } else {
-        // Standard Content Truncation
+        // Standard Content Truncation & D. Line Gap fix (pre-wrap)
         if (post.content.length > 150) {
             contentHtml = `
-                <div class="post-text truncated" id="text-${post.id}">${post.content}</div>
-                <button class="see-more-btn" onclick="toggleText(${post.id})">See more</button>
+                <div class="post-text truncated" id="text-${post.id}" style="white-space: pre-wrap;">${post.content}</div>
+                <button class="see-more-btn" onclick="toggleText('${post.id}')">See more</button>
             `;
         } else {
-            contentHtml = `<div class="post-text" id="text-${post.id}">${post.content}</div>`;
+            contentHtml = `<div class="post-text" id="text-${post.id}" style="white-space: pre-wrap;">${post.content}</div>`;
         }
 
-        // Standard Images
         if (post.images && post.images.length > 0) {
             const firstImage = post.images[0];
             const moreCount = post.images.length - 1;
@@ -244,9 +265,10 @@ function createPostElement(post) {
         }
     }
 
-    let followBtn = post.author_id !== currentUser.uid ? 
-        `<button class="inline-follow-btn ${post.followed_by_user ? 'following' : ''}" onclick="toggleFollow('${post.author_id}', this)" title="${post.followed_by_user ? 'Following' : 'Follow'}">
-            <i class="fas ${post.followed_by_user ? 'fa-user-check' : 'fa-user-plus'}"></i>
+    // C. Only show if NOT followed, and stop click from opening profile
+    let followBtn = (post.author_id !== currentUser.uid && !post.followed_by_user) ? 
+        `<button class="inline-follow-btn" onclick="event.stopPropagation(); toggleFollow('${post.author_id}', this)" title="Follow">
+            <i class="fas fa-user-plus"></i> Follow
         </button>` : '';
 
     let optionsMenu = '';
@@ -484,8 +506,7 @@ async function toggleFollow(userId, btn) {
         const res = await fetch(API_URL, { method: 'POST', body: formData });
         const data = await res.json();
         if (data.status === 'followed') {
-            btn.classList.add('following');
-            btn.innerHTML = '<i class="fas fa-user-check"></i> Following';
+            btn.remove(); // C. Completely remove the button once followed
         } else if (data.status === 'unfollowed') {
             btn.classList.remove('following');
             btn.innerHTML = '<i class="fas fa-user-plus"></i> Follow';
@@ -496,17 +517,21 @@ async function toggleFollow(userId, btn) {
 }
 
 async function sharePost(postId) {
+    // A. Ask user for a caption
+    const caption = prompt("Write a caption for this share (optional):", "");
+    if (caption === null) return; // Cancelled if they click 'Cancel'
+
     const formData = new FormData();
     formData.append('action', 'share');
     formData.append('userId', currentUser.uid);
     formData.append('originalPostId', postId);
+    formData.append('content', caption.trim() || 'shared a post'); // Send caption
 
     try {
         const res = await fetch(API_URL, { method: 'POST', body: formData });
         const data = await res.json();
         if (data.status === 'success') {
             showToast('Shared to your wall!');
-            // Reload feed to show new share
             feedOffset = 0;
             document.getElementById('feedContainer').innerHTML = '<div class="loading-spinner"><i class="fas fa-spinner fa-spin"></i> Loading...</div>';
             loadFeed(true);
@@ -517,6 +542,7 @@ async function sharePost(postId) {
         showToast('Network error');
     }
 }
+
 
 // ------------------- UI HELPERS -------------------
 function toggleText(postId) {
@@ -624,7 +650,7 @@ function editPost(postId) {
     const titleEl = card.querySelector('.post-content h3');
     
     document.getElementById('editPostId').value = postId;
-    document.getElementById('editPostContent').value = contentEl ? contentEl.innerText : '';
+    document.getElementById('editPostContent').innerHTML = contentEl ? contentEl.innerHTML : '';
     
     const titleInput = document.getElementById('editPostTitle');
     if (titleEl) {
@@ -646,7 +672,7 @@ function closeEditPostModal(e) {
 
 async function submitEditPost() {
     const postId = document.getElementById('editPostId').value;
-    const content = document.getElementById('editPostContent').value.trim();
+    const content = document.getElementById('editPostContent').innerHTML.trim();
     const title = document.getElementById('editPostTitle').value.trim();
     
     if(!content) { showToast('Content cannot be empty'); return; }
@@ -666,7 +692,7 @@ async function submitEditPost() {
             closeEditPostModal();
             // Update the UI instantly without reloading the page
             const card = document.querySelector(`.post-card[data-post-id="${postId}"]`);
-            if(card.querySelector('.post-text')) card.querySelector('.post-text').innerText = content;
+            if(card.querySelector('.post-text')) card.querySelector('.post-text').innerHTML = content;
             if(card.querySelector('.post-content h3') && title) card.querySelector('.post-content h3').innerText = title;
         } else {
             showToast(data.message || 'Error updating post');
@@ -820,3 +846,10 @@ async function markNotifRead(notifId, postId) {
 document.addEventListener('DOMContentLoaded', () => {
     setTimeout(fetchNotifications, 1000);
 });
+
+
+// D. Rich Text Formatting Executer
+function formatText(command) {
+    document.execCommand(command, false, null);
+    document.querySelector('.rich-editor:focus')?.focus();
+}
