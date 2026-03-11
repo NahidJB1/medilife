@@ -58,7 +58,7 @@ function initCommunity() {
     }
 
     // Load initial feed ONLY if we are on the main community page
-    if (!window.location.href.includes('community-profile.html')) {
+    if (!window.location.href.includes('community-profile.html') && !window.location.href.includes('single-post.html')) {
         loadFeed(true);
     }
     
@@ -198,7 +198,7 @@ async function loadFeed(reset = false) {
 
 // Infinite scroll (Only trigger on main community page to prevent profile feed overwriting)
 window.addEventListener('scroll', () => {
-    if (!window.location.href.includes('community-profile.html')) {
+    if (!window.location.href.includes('community-profile.html') && !window.location.href.includes('single-post.html')) {
         if (window.innerHeight + window.scrollY >= document.body.offsetHeight - 500) {
             loadFeed();
         }
