@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
+    <title>Post | MEDeLIFE</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="css/community.css">
+    <style>
+        .single-post-container {
+            max-width: 700px;
+            margin: 100px auto 40px;
+            padding: 0 15px;
+            animation: fadeIn 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .back-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: white;
+            color: var(--dark);
+            border: 1px solid #E5E7EB;
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-weight: 500;
+            cursor: pointer;
+            margin-bottom: 20px;
+            transition: all 0.2s;
+            text-decoration: none;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+        }
+        .back-btn:hover {
+            border-color: var(--primary);
+            color: var(--primary);
+            transform: translateX(-3px);
+            box-shadow: 0 4px 8px rgba(239, 68, 68, 0.1);
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(15px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar">
+        <a href="dashboard.html" id="navLogo" class="logo-container">
+            <svg width="35" height="35" viewBox="0 0 100 100"><rect x="35" y="10" width="30" height="80" rx="5" fill="#EF4444" /><rect x="10" y="35" width="80" height="30" rx="5" fill="#EF4444" /></svg>
+            <div style="font-family: 'Poppins', sans-serif; font-size: 20px; font-weight: 700;">
+                <span style="color: #EF4444;">MED</span><span style="color: #000;">e</span><span style="color: #22C55E;">LIFE</span>
+            </div>
+        </a>
+        <ul class="nav-links">
+            <li><a href="dashboard.html" title="Dashboard"><i class="fas fa-home"></i></a></li>
+            <li><a href="community.html" title="Community"><i class="fas fa-users"></i></a></li>
+            <li><a href="#" title="Profile"><i class="fas fa-user-circle"></i></a></li>
+        </ul>
+    </nav>
+
+    <div class="single-post-container">
+        <a href="javascript:history.back()" class="back-btn"><i class="fas fa-arrow-left"></i> Go Back</a>
+        <div id="singlePostWrapper">
+            <div class="loading-spinner" style="text-align: center; padding: 40px;"><i class="fas fa-spinner fa-spin"></i> Loading post...</div>
+        </div>
+    </div>
+
+    <div id="toast-box"><i class="fas fa-info-circle"></i> <span id="toast-msg"></span></div>
+
+    <script src="js/community.js"></script>
+    <script src="js/single-post.js"></script>
+</body>
+</html>
