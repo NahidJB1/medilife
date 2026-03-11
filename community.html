@@ -91,7 +91,14 @@
 
             <div class="input-area">
                 <input type="text" id="postTitle" class="post-title-input" placeholder="Article Headline...">
-                <textarea id="postContent" placeholder="What health question is on your mind?" rows="4"></textarea>
+                <div class="editor-toolbar">
+                    <button type="button" onclick="formatText('bold')"><i class="fas fa-bold"></i></button>
+                    <button type="button" onclick="formatText('italic')"><i class="fas fa-italic"></i></button>
+                    <button type="button" onclick="formatText('underline')"><i class="fas fa-underline"></i></button>
+                    <button type="button" onclick="formatText('insertUnorderedList')"><i class="fas fa-list-ul"></i></button>
+                    <button type="button" onclick="formatText('insertOrderedList')"><i class="fas fa-list-ol"></i></button>
+                </div>
+                <div id="postContent" class="rich-editor" contenteditable="true" data-placeholder="What health question is on your mind?"></div>
                 
                 <div class="image-upload-area">
                     <label for="postImages" class="btn-upload"><i class="fas fa-camera"></i> Add Photos</label>
@@ -116,7 +123,14 @@
             <div class="input-area">
                 <input type="hidden" id="editPostId">
                 <input type="text" id="editPostTitle" class="post-title-input" placeholder="Article Headline...">
-                <textarea id="editPostContent" placeholder="Update your content..." rows="5"></textarea>
+                <div class="editor-toolbar">
+                    <button type="button" onclick="formatText('bold')"><i class="fas fa-bold"></i></button>
+                    <button type="button" onclick="formatText('italic')"><i class="fas fa-italic"></i></button>
+                    <button type="button" onclick="formatText('underline')"><i class="fas fa-underline"></i></button>
+                    <button type="button" onclick="formatText('insertUnorderedList')"><i class="fas fa-list-ul"></i></button>
+                    <button type="button" onclick="formatText('insertOrderedList')"><i class="fas fa-list-ol"></i></button>
+                </div>
+                <div id="editPostContent" class="rich-editor" contenteditable="true" data-placeholder="Update your content..."></div>
             </div>
             <div class="cp-footer">
                 <button class="btn-post" onclick="submitEditPost()">Update Post</button>
@@ -130,4 +144,3 @@
     <script src="js/community.js"></script>
 </body>
 </html>
-s
