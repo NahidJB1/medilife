@@ -47,8 +47,8 @@
                 </div>
 
                 <div class="profile-titles">
-                    <h1 id="profileName">Loading...</h1>
-                    <span class="role-badge" id="profileRole">Role</span>
+                    <h1 id="profileName" class="skeleton-text">Loading...</h1>
+                    <span class="role-badge" id="profileRole" style="opacity: 0; transition: 0.3s;">Role</span>
                 </div>
                 
                 <div class="profile-stats">
@@ -106,14 +106,15 @@
                 <div class="flex-input"><label>Location</label><input type="text" id="editLocation" placeholder="e.g. Kuala Lumpur, Malaysia"></div>
                 <select id="privLocation" class="privacy-select"><option value="public">Public</option><option value="followers">Followers</option><option value="private">Only Me</option></select>
             </div>
-            <div class="form-group-flex">
-                <div class="flex-input"><label>Education</label><input type="text" id="editEducation" placeholder="e.g. MD from Oxford"></div>
+            <div class="form-group-flex" id="groupEducation">
+                <div class="flex-input"><label><i class="fas fa-graduation-cap"></i> Education</label><input type="text" id="editEducation" placeholder="e.g. MD from Oxford"></div>
                 <select id="privEducation" class="privacy-select"><option value="public">Public</option><option value="followers">Followers</option><option value="private">Only Me</option></select>
             </div>
-            <div class="form-group-flex">
-                <div class="flex-input"><label>Work Experience</label><input type="text" id="editProfession" placeholder="e.g. Cardiologist"></div>
+            <div class="form-group-flex" id="groupProfession">
+                <div class="flex-input"><label id="labelProfession"><i class="fas fa-briefcase"></i> Work Experience</label><input type="text" id="editProfession" placeholder="e.g. Cardiologist"></div>
                 <select id="privProfession" class="privacy-select"><option value="public">Public</option><option value="followers">Followers</option><option value="private">Only Me</option></select>
             </div>
+            
             <div class="form-group-flex">
                 <div class="flex-input"><label>Languages Known</label><input type="text" id="editLanguages" placeholder="e.g. English, Malay"></div>
                 <select id="privLanguages" class="privacy-select"><option value="public">Public</option><option value="followers">Followers</option><option value="private">Only Me</option></select>
