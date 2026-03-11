@@ -59,6 +59,36 @@ function initCommunity() {
 
     // Load initial feed
     loadFeed(true);
+    
+    // Fetch user avatar for Create Post trigger
+    fetchCurrentUserAvatar();
+}
+
+
+// Fetch and apply current user's avatar to the slim post trigger and share modal
+async function fetchCurrentUserAvatar() {
+    try {
+        const res = await fetch(`${API_URL}?action=get_profile&targetUid=${currentUser.uid}&reqUid=${currentUser.uid}`);
+        const data = await res.json();
+        if (data.status === 'success' && data.profile.profile_pic) {
+            const avatarHtml = `<img src="${data.profile.profile_pic}" style="width:100%; height:100%; object-fit:cover;">`;
+            
+            // Apply to Create Post Trigger
+            const triggerAvatar = document.getElementById('triggerAvatar');
+            if (triggerAvatar) {
+                triggerAvatar.style.padding = '0';
+                triggerAvatar.innerHTML = avatarHtml;
+            }
+            
+            // Apply to Share Modal Profile Icon
+            const shareAvatar = document.getElementById('shareUserAvatar');
+            if (shareAvatar) {
+                shareAvatar.innerHTML = avatarHtml;
+            }
+        }
+    } catch (e) {
+        console.error("Failed to load user avatar", e);
+    }
 }
 
 // ------------------- POST CREATION -------------------
@@ -516,33 +546,61 @@ async function toggleFollow(userId, btn) {
     }
 }
 
-async function sharePost(postId) {
-    // A. Ask user for a caption
-    const caption = prompt("Write a caption for this share (optional):", "");
-    if (caption === null) return; // Cancelled if they click 'Cancel'
+function sharePost(postId) {
+    // 1. Get the original post content to create a preview
+    const postCard = document.querySelector(`.post-card[data-post-id="${postId}"]`);
+    const originalAuthor = postCard.querySelector('.meta h4').innerText.replace(' Follow', '').trim();
+    const originalText = postCard.querySelector('.post-text').innerText;
+    
+    // 2. Populate the Modal
+    document.getElementById('shareOriginalPostId').value = postId;
+    document.getElementById('sharePostCaption').value = '';
+    
+    // Truncate text for preview
+    const previewText = originalText.length > 80 ? originalText.substring(0, 80) + '...' : originalText;
+    document.getElementById('sharePostPreview').innerHTML = `
+        <div style="font-weight: 600; font-size: 0.85rem; color: var(--dark); margin-bottom: 4px;">${originalAuthor}</div>
+        <div style="font-size: 0.8rem; color: var(--gray);">${previewText}</div>
+        <div style="position: absolute; bottom: 0; left: 0; width: 100%; height: 40px; background: linear-gradient(transparent, #F9FAFB);"></div>
+    `;
+
+    // 3. Show Modal
+    document.getElementById('sharePostModal').classList.add('active');
+    document.body.style.overflow = 'hidden';
+}
+
+function closeShareModal(e) {
+    if (e && e.target !== document.getElementById('sharePostModal')) return;
+    document.getElementById('sharePostModal').classList.remove('active');
+    document.body.style.overflow = '';
+}
+
+async function submitSharePost() {
+    const postId = document.getElementById('shareOriginalPostId').value;
+    const caption = document.getElementById('sharePostCaption').value.trim();
 
     const formData = new FormData();
     formData.append('action', 'share');
     formData.append('userId', currentUser.uid);
     formData.append('originalPostId', postId);
-    formData.append('content', caption.trim() || 'shared a post'); // Send caption
+    formData.append('content', caption || 'shared a post');
 
     try {
         const res = await fetch(API_URL, { method: 'POST', body: formData });
         const data = await res.json();
         if (data.status === 'success') {
-            showToast('Shared to your wall!');
+            showToast('Shared successfully!');
+            closeShareModal();
             feedOffset = 0;
             document.getElementById('feedContainer').innerHTML = '<div class="loading-spinner"><i class="fas fa-spinner fa-spin"></i> Loading...</div>';
             loadFeed(true);
         } else {
-            showToast('Error sharing post');
+            showToast('Error sharing post: ' + data.message);
         }
     } catch (err) {
         showToast('Network error');
     }
 }
-
 
 // ------------------- UI HELPERS -------------------
 function toggleText(postId) {
