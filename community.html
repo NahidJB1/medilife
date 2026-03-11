@@ -39,7 +39,7 @@
         <main class="feed">
             <!-- Create Post Card -->
             <div class="slim-post-trigger" onclick="openPostModal()">
-                <div class="avatar"><i class="fas fa-user"></i></div>
+                <div class="avatar" id="triggerAvatar"><i class="fas fa-user"></i></div>
                 <div class="trigger-input">What health question is on your mind?</div>
             </div>
 
@@ -134,6 +134,32 @@
             </div>
             <div class="cp-footer">
                 <button class="btn-post" onclick="submitEditPost()">Update Post</button>
+            </div>
+        </div>
+    </div>
+
+
+    <div class="modal-overlay" id="sharePostModal" onclick="closeShareModal(event)">
+        <div class="modal-content create-post-card">
+            <div class="modal-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; border-bottom: 1px solid #eee; padding-bottom: 10px;">
+                <h2 style="font-size: 1.2rem;">Share Post</h2>
+                <button class="btn-close" onclick="closeShareModal()" style="background: none; border: none; font-size: 1.2rem; cursor: pointer; color: var(--gray);"><i class="fas fa-times"></i></button>
+            </div>
+            <div class="input-area">
+                <div style="display: flex; gap: 10px; margin-bottom: 10px; align-items: center;">
+                    <div class="avatar" id="shareUserAvatar" style="width: 35px; height: 35px; border-radius: 50%; overflow: hidden; padding: 0;">
+                        <i class="fas fa-user"></i>
+                    </div>
+                    <div style="font-weight: 600; font-size: 0.95rem;">You</div>
+                </div>
+                <input type="hidden" id="shareOriginalPostId">
+                <textarea id="sharePostCaption" class="rich-editor" style="min-height: 60px;" placeholder="Say something about this..."></textarea>
+                
+                <div id="sharePostPreview" style="border: 1px solid #E5E7EB; border-radius: 12px; padding: 12px; background: #F9FAFB; margin-top: 10px; max-height: 150px; overflow: hidden; position: relative;">
+                    </div>
+            </div>
+            <div class="cp-footer" style="justify-content: flex-end;">
+                <button class="btn-post" style="background: #2563EB;" onclick="submitSharePost()">Share now</button>
             </div>
         </div>
     </div>
