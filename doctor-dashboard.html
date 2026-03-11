@@ -6,7 +6,7 @@
     <title>Doctor Dashboard | MEDeLIFE</title>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-    <link rel="stylesheet" href="css/doctor-dashboard.css">
+    <link rel="stylesheet" href="css/patient-dashboard.css">
 </head>
 <body>
 
@@ -26,21 +26,22 @@
             <div class="nav-item" onclick="window.location.href='community.html'"><i class="fas fa-users"></i> Community</div>
         </div>
 
-        <div class="user-mini-profile" onclick="window.location.href='profile.html'" style="cursor: pointer;">
-    <img id="sideAvatar" src="https://via.placeholder.com/150" class="mini-avatar">
-    <div>
-        <h4 id="sideName" style="font-size: 0.9rem;">Doctor</h4>
-        <p id="sideRole" style="font-size: 0.75rem; color: var(--gray);">Medical Professional</p>
-    </div>
-</div>
+<div class="user-mini-profile" onclick="window.location.href='profile.html'" style="cursor: pointer;">
+            <img id="sideAvatar" src="https://via.placeholder.com/150" class="mini-avatar">
+            <div>
+                <h4 id="sideName" style="font-size: 0.9rem;">User</h4>
+                <p id="sideRole" style="font-size: 0.75rem; color: var(--gray);">Patient Account</p>
+            </div>
+        </div>
+        
     </aside>
 
     <main class="main-content">
         <header>
-    <div style="display: flex; align-items: center; gap: 15px;">
-        <button class="mobile-menu-btn" onclick="toggleSidebar()"><i class="fas fa-bars"></i></button>
-        <div class="welcome-text">
-            <h1 id="welcomeTitle">Welcome Back!</h1>
+            <div style="display: flex; align-items: center; gap: 15px;">
+                <button class="mobile-menu-btn" onclick="toggleSidebar()"><i class="fas fa-bars"></i></button>
+                <div class="welcome-text">
+                    <h1 id="welcomeTitle">Welcome Back!</h1>
                 <p id="currentDate">Loading date...</p>
             </div>
             <div class="header-actions">
@@ -57,9 +58,29 @@
             <div class="action-section">
                 <div class="section-title">Quick Actions</div>
                 <div class="quick-actions" id="actionGrid">
-                    <div class="action-card" onclick="openAppointmentList('pending')"><i class="fas fa-calendar-check" style="color:#F59E0B"></i><h4>Requests</h4><p>Pending Approvals</p></div>
-                    <div class="action-card" onclick="openAppointmentList('accepted')"><i class="fas fa-clipboard-list"></i><h4>View Bookings</h4><p>Confirmed Patients</p></div>
-                    <div class="action-card" onclick="openPatientSearch()"><i class="fas fa-user-injured"></i><h4>Find Patient</h4><p>View History & Prescribe</p></div>
+                    <div class="action-card" onclick="openUploadModal()">
+    <i class="fas fa-file-upload"></i>
+    <h4>Upload Report</h4>
+    <p>X-Ray, ECG, etc.</p>
+</div>
+
+<div class="action-card" onclick="openFindDoctorModal()">
+    <i class="fas fa-user-md"></i>
+    <h4>Find Doctors</h4>
+    <p>Book Appointment</p>
+</div>
+
+<div class="action-card" onclick="openPatientSchedule()">
+    <i class="fas fa-calendar-alt"></i>
+    <h4>View Schedule</h4>
+    <p>Check Appointments</p>
+</div>
+
+<div class="action-card" onclick="window.location.href='patient-reports.html'">
+    <i class="fas fa-file-medical-alt"></i>
+    <h4>My Reports</h4>
+    <p>View History</p>
+</div>
                 </div>
             </div>
         </div>
@@ -74,9 +95,7 @@
 
     <div id="toast-box"><i class="fas fa-info-circle"></i> <span id="toast-msg">Notification</span></div>
 
-    <script src="js/doctor-dashboard.js"></script>
-
-    
+    <script src="js/patient-dashboard.js"></script>
 
     <div class="modal-overlay" id="documentViewerModal" style="z-index: 3000;">
     <div class="dashboard-modal" style="width: 90%; height: 85%; max-width: 900px; display: flex; flex-direction: column;">
