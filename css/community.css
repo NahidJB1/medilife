@@ -471,3 +471,26 @@ textarea {
         max-height: 60vh; transform: translateY(20px);
     }
 }
+
+
+/* --- D. RICH TEXT EDITOR STYLES --- */
+.editor-toolbar {
+    display: flex; gap: 8px; margin-bottom: 5px; padding: 5px;
+    background: #F9FAFB; border: 1px solid #E5E7EB; border-radius: 8px;
+}
+.editor-toolbar button {
+    background: none; border: none; cursor: pointer; padding: 6px 10px;
+    border-radius: 4px; color: var(--gray); transition: 0.2s;
+}
+.editor-toolbar button:hover { background: #E5E7EB; color: var(--dark); }
+
+.rich-editor {
+    width: 100%; min-height: 100px; border: 1px solid #E5E7EB;
+    border-radius: 8px; padding: 12px; font-size: 1rem;
+    outline: none; overflow-y: auto; background: white;
+    white-space: pre-wrap; word-wrap: break-word; line-height: 1.6;
+}
+.rich-editor:empty:before {
+    content: attr(data-placeholder);
+    color: #9CA3AF; pointer-events: none; display: block;
+}
